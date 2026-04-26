@@ -16,6 +16,7 @@
   <ul class="nav-links">
     <li><a id="nav-home" data-nav="home" class="active">Home</a></li>
     <li><a id="nav-gamemodes" data-nav="gamemodes">Gamemodes</a></li>
+    <li><a href="forum.html">Forum</a></li>
     <li><a>Store</a></li>
   </ul>
   <div class="nav-right">
@@ -82,86 +83,30 @@
     <div class="feat-item"><span>🔒</span> Zero Pay-to-Win</div>
   </div>
 
-  <!-- GAMEMODES PREVIEW -->
-  <section id="gamemodes-section">
+  <!-- FORUM SECTION -->
+  <section id="forum-section">
     <div class="section-inner">
-      <div class="section-head">
-        <div class="section-label">Gamemodes</div>
-        <h2 class="section-title">Pick Your Battlefield</h2>
-        <p class="section-sub">Every mode is custom-built for competition — not copy-pasted, designed from scratch.</p>
-        <button class="btn-ghost" data-nav="gamemodes">View All Modes →</button>
+      <div class="forum-home-header">
+        <div>
+          <div class="section-label">Community</div>
+          <h2 class="section-title">Forum</h2>
+          <p class="section-sub">Discuss gamemodes, share clips, report bugs, and connect with the community.</p>
+        </div>
+        <button class="btn-new-post-home" onclick="openNewPostHome()">+ New Post</button>
       </div>
-      <div class="gm-preview-grid" id="home-modes-grid"></div>
-    </div>
-  </section>
 
-  <!-- NEWS & EVENTS -->
-  <section id="news-section">
-    <div class="section-inner">
-      <div class="news-grid">
-        <!-- Announcements -->
-        <div class="news-col">
-          <div class="news-col-header">
-            <div class="section-label">Announcements</div>
-            <h2 class="section-title">Latest News</h2>
+      <div class="forum-home-body">
+        <!-- Sidebar -->
+        <div class="forum-home-sidebar">
+          <div class="sidebar-card">
+            <div class="sidebar-card-title">Categories</div>
+            <div class="cat-list-home" id="cat-list-home"></div>
           </div>
-          <div class="announce-list" id="announce-list"></div>
         </div>
-        <!-- Right: Events + Changelog -->
-        <div class="news-side">
-          <div class="news-col-header">
-            <div class="section-label">Events</div>
-            <h2 class="section-title sm">Active &amp; Upcoming</h2>
-          </div>
-          <div class="events-list" id="events-list"></div>
-          <div class="news-col-header" style="margin-top:48px;">
-            <div class="section-label">Changelog</div>
-            <h2 class="section-title sm">Recent Updates</h2>
-          </div>
-          <div class="changelog-list" id="changelog-list"></div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- WHY -->
-  <section id="why">
-    <div class="section-inner">
-      <div class="section-head centered">
-        <div class="section-label">Why Us</div>
-        <h2 class="section-title">Built Different.</h2>
-        <p class="section-sub">Here's what separates GlimzoMC from every other server you've played on.</p>
-      </div>
-      <div class="why-grid">
-        <div class="why-item">
-          <div class="why-ico-wrap">⚡</div>
-          <div class="why-title">Low Ping. Always.</div>
-          <div class="why-desc">Dedicated nodes with optimized tick rates. If you lose, it was your skill — not your connection.</div>
-        </div>
-        <div class="why-item">
-          <div class="why-ico-wrap">🛡️</div>
-          <div class="why-title">Real Anti-Cheat</div>
-          <div class="why-desc">24/7 anti-cheat running in the background. Every win you earn is clean. No hackers ruining your ranked games.</div>
-        </div>
-        <div class="why-item">
-          <div class="why-ico-wrap">🎮</div>
-          <div class="why-title">Custom Everything</div>
-          <div class="why-desc">Our gamemodes aren't copies. Every system — from combat mechanics to map design — built from the ground up.</div>
-        </div>
-        <div class="why-item">
-          <div class="why-ico-wrap">📊</div>
-          <div class="why-title">Competitive Systems</div>
-          <div class="why-desc">ELO ranking, seasonal resets, match history, and live leaderboards. Every win and loss actually means something.</div>
-        </div>
-        <div class="why-item">
-          <div class="why-ico-wrap">🔒</div>
-          <div class="why-title">Zero Pay-to-Win</div>
-          <div class="why-desc">Cosmetics only. No purchased advantages, no P2W kits. The only thing that gets you ahead is your own skill.</div>
-        </div>
-        <div class="why-item">
-          <div class="why-ico-wrap">🌍</div>
-          <div class="why-title">Early Access</div>
-          <div class="why-desc">Be a founding player. Shape the server, influence what gets built, and grow with the community from day one.</div>
+        <!-- Posts -->
+        <div class="forum-home-main">
+          <input type="text" class="forum-search-home" id="forum-search-home" placeholder="Search posts..." oninput="filterPostsHome()" />
+          <div class="posts-list-home" id="posts-list-home"><div class="forum-loading">Loading posts...</div></div>
         </div>
       </div>
     </div>
