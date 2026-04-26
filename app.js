@@ -457,3 +457,368 @@ buildGmCards();
 buildAnnouncements();
 buildEvents();
 buildChangelog();
+
+// ═══════════════════════════════════════════════════════
+//  FORUM ON HOMEPAGE — Supabase Integration
+// ═══════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://bglgsikoblveeofpdyuv.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJnbGdzaWtvYmx2ZWVvZnBkeXV2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxNzAyNDEsImV4cCI6MjA5Mjc0NjI0MX0.9WdcO6cvrbQ93TIGcgDOR6MU5VKD6zovEkYd-aNWYAA';
+
+let sb = null;
+let fUser = null;
+let fProfile = null;
+let fPosts = [];
+let fCats = [];
+let fActiveCat = null;
+let fCurrentPost = null;
+
+function initSupabase() {
+  if (typeof supabase === 'undefined') return;
+  sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  initForumAuth();
+  loadForumCategories();
+  loadForumPosts();
+  injectForumHTML();
+}
+
+function injectForumHTML() {
+  // Post detail overlay
+  if (!document.getElementById('post-overlay-home')) {
+    const overlay = document.createElement('div');
+    overlay.id = 'post-overlay-home';
+    overlay.className = 'post-overlay';
+    overlay.innerHTML = `<div class="post-overlay-inner">
+      <button class="back-btn-home" onclick="closePostOverlay()">← Back to Forum</button>
+      <div id="pod-content"></div>
+      <div id="pod-replies-title" class="replies-hd">Replies</div>
+      <div id="pod-replies"></div>
+      <div id="pod-reply-form"></div>
+    </div>`;
+    document.body.appendChild(overlay);
+  }
+
+  // New post modal
+  if (!document.getElementById('fmodal-post')) {
+    const m = document.createElement('div');
+    m.id = 'fmodal-post';
+    m.className = 'fmodal-overlay';
+    m.innerHTML = `<div class="fmodal">
+      <div class="fmodal-hd">
+        <div class="fmodal-title">New Post</div>
+        <button class="fmodal-close" onclick="closeFModal('fmodal-post')">✕</button>
+      </div>
+      <div class="fform-group"><label class="fform-label">Title</label><input type="text" class="fform-input" id="f-post-title" placeholder="What's your post about?" /></div>
+      <div class="fform-group"><label class="fform-label">Category</label><select class="fform-select" id="f-post-cat"></select></div>
+      <div class="fform-group"><label class="fform-label">Content</label><textarea class="fform-textarea" id="f-post-content" placeholder="Write your post..."></textarea></div>
+      <button class="fform-submit" onclick="submitForumPost()">Publish Post</button>
+    </div>`;
+    m.addEventListener('click', e => { if (e.target === m) closeFModal('fmodal-post'); });
+    document.body.appendChild(m);
+  }
+
+  // Auth modal
+  if (!document.getElementById('fmodal-auth')) {
+    const m = document.createElement('div');
+    m.id = 'fmodal-auth';
+    m.className = 'fmodal-overlay';
+    m.innerHTML = `<div class="fmodal">
+      <div class="fmodal-hd">
+        <div class="fmodal-title" id="fauth-title">Log In</div>
+        <button class="fmodal-close" onclick="closeFModal('fmodal-auth')">✕</button>
+      </div>
+      <div class="auth-tabs-home">
+        <button class="auth-tab-home active" id="ftab-login" onclick="switchFTab('login')">Log In</button>
+        <button class="auth-tab-home" id="ftab-signup" onclick="switchFTab('signup')">Sign Up</button>
+      </div>
+      <div id="fauth-login">
+        <div class="fform-group"><label class="fform-label">Email</label><input type="email" class="fform-input" id="f-login-email" placeholder="your@email.com" /></div>
+        <div class="fform-group"><label class="fform-label">Password</label><input type="password" class="fform-input" id="f-login-pw" placeholder="••••••••" /></div>
+        <button class="fform-submit" onclick="forumLogin()">Log In</button>
+      </div>
+      <div id="fauth-signup" style="display:none;">
+        <div class="fform-group"><label class="fform-label">Username</label><input type="text" class="fform-input" id="f-signup-user" placeholder="YourUsername" /></div>
+        <div class="fform-group"><label class="fform-label">Email</label><input type="email" class="fform-input" id="f-signup-email" placeholder="your@email.com" /></div>
+        <div class="fform-group"><label class="fform-label">Password</label><input type="password" class="fform-input" id="f-signup-pw" placeholder="Min 6 characters" /></div>
+        <button class="fform-submit" onclick="forumSignup()">Create Account</button>
+      </div>
+    </div>`;
+    m.addEventListener('click', e => { if (e.target === m) closeFModal('fmodal-auth'); });
+    document.body.appendChild(m);
+  }
+
+  // Toast
+  if (!document.getElementById('ftoast')) {
+    const t = document.createElement('div');
+    t.id = 'ftoast';
+    t.className = 'ftoast';
+    t.innerHTML = `<span id="ftoast-icon">✓</span><span id="ftoast-msg"></span>`;
+    document.body.appendChild(t);
+  }
+}
+
+// ── AUTH ──────────────────────────────────────────────
+async function initForumAuth() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session?.user) await setForumUser(session.user);
+  sb.auth.onAuthStateChange(async (_, session) => {
+    if (session?.user) await setForumUser(session.user);
+    else { fUser = null; fProfile = null; renderForumNav(); }
+  });
+}
+
+async function setForumUser(user) {
+  fUser = user;
+  const { data } = await sb.from('profiles').select('*').eq('id', user.id).single();
+  fProfile = data;
+  renderForumNav();
+}
+
+function renderForumNav() {
+  const navRight = document.getElementById('nav-right');
+  if (!navRight) return;
+  if (fUser && fProfile) {
+    const init = fProfile.username[0].toUpperCase();
+    navRight.innerHTML = `<div class="user-bar">
+      <div class="user-avatar" style="background:${fProfile.avatar_color}22;color:${fProfile.avatar_color};">${init}</div>
+      <span class="user-name">${fProfile.username}</span>
+      <button class="btn-signout" onclick="forumSignout()">Sign Out</button>
+    </div>`;
+  } else {
+    navRight.innerHTML = `
+      <button class="btn-nav outline" onclick="openFAuth('login')" style="background:none;color:var(--gr);border:1px solid rgba(74,222,128,.25);padding:9px 20px;border-radius:7px;font-family:'Barlow',sans-serif;font-weight:800;font-size:13px;cursor:pointer;">Log In</button>
+      <button class="btn-nav" onclick="openFAuth('signup')" style="background:var(--g);color:#050d08;border:none;padding:9px 20px;border-radius:7px;font-family:'Barlow',sans-serif;font-weight:800;font-size:13px;cursor:pointer;">Sign Up</button>`;
+  }
+}
+
+async function forumLogin() {
+  const email = document.getElementById('f-login-email').value.trim();
+  const pw = document.getElementById('f-login-pw').value;
+  const { error } = await sb.auth.signInWithPassword({ email, password: pw });
+  if (error) return fToast('❌ ' + error.message, true);
+  closeFModal('fmodal-auth');
+  fToast('✓ Logged in!');
+}
+
+async function forumSignup() {
+  const username = document.getElementById('f-signup-user').value.trim();
+  const email = document.getElementById('f-signup-email').value.trim();
+  const pw = document.getElementById('f-signup-pw').value;
+  if (!username || username.length < 3) return fToast('❌ Username must be 3+ characters', true);
+  const { data, error } = await sb.auth.signUp({ email, password: pw });
+  if (error) return fToast('❌ ' + error.message, true);
+  if (data.user) await sb.from('profiles').insert({ id: data.user.id, username, avatar_color: '#4ade80' });
+  closeFModal('fmodal-auth');
+  fToast('✓ Account created! Check your email.');
+}
+
+async function forumSignout() {
+  await sb.auth.signOut();
+  fToast('✓ Signed out');
+}
+
+// ── CATEGORIES ────────────────────────────────────────
+async function loadForumCategories() {
+  const { data } = await sb.from('categories').select('*').order('id');
+  fCats = data || [];
+  const list = document.getElementById('cat-list-home');
+  const sel = document.getElementById('f-post-cat');
+  if (!list) return;
+
+  list.innerHTML = `<div class="cat-item-home active" onclick="filterForumCat(null,this)"><span class="ce">📋</span><span class="cn">All Posts</span></div>`;
+  fCats.forEach(c => {
+    list.innerHTML += `<div class="cat-item-home" onclick="filterForumCat(${c.id},this)"><span class="ce">${c.icon}</span><span class="cn">${c.name}</span></div>`;
+    if (sel) sel.innerHTML += `<option value="${c.id}">${c.icon} ${c.name}</option>`;
+  });
+}
+
+function filterForumCat(id, el) {
+  fActiveCat = id;
+  document.querySelectorAll('.cat-item-home').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+  renderForumPosts();
+}
+
+// ── POSTS ──────────────────────────────────────────────
+async function loadForumPosts() {
+  const { data } = await sb.from('posts')
+    .select(`*, profiles(username,avatar_color), categories(name,icon), replies(count)`)
+    .order('created_at', { ascending: false });
+  fPosts = data || [];
+  renderForumPosts();
+}
+
+function renderForumPosts() {
+  const list = document.getElementById('posts-list-home');
+  if (!list) return;
+  const search = (document.getElementById('forum-search-home')?.value || '').toLowerCase();
+  let filtered = fPosts;
+  if (fActiveCat) filtered = filtered.filter(p => p.category_id === fActiveCat);
+  if (search) filtered = filtered.filter(p => p.title.toLowerCase().includes(search) || p.content.toLowerCase().includes(search));
+
+  if (!filtered.length) {
+    list.innerHTML = `<div class="forum-empty"><div class="forum-empty-icon">💬</div><div class="forum-empty-txt">No posts yet. Be the first!</div></div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(p => {
+    const init = p.profiles?.username?.[0]?.toUpperCase() || '?';
+    const color = p.profiles?.avatar_color || '#4ade80';
+    const replies = p.replies?.[0]?.count || 0;
+    return `<div class="post-card-home" onclick="openForumPost(${p.id})">
+      <div class="pav" style="background:${color}18;color:${color};">${init}</div>
+      <div class="pc">
+        <div class="pt">${p.title}</div>
+        <div class="pm">
+          <span class="pa">@${p.profiles?.username || 'Unknown'}</span>
+          <span class="pcat">${p.categories?.icon || ''} ${p.categories?.name || ''}</span>
+          <span class="ptime">${fTimeAgo(p.created_at)}</span>
+        </div>
+      </div>
+      <div class="ps">
+        <span class="pr">${replies} ${replies===1?'reply':'replies'}</span>
+        <span class="pv">${p.views||0} views</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterPostsHome() { renderForumPosts(); }
+
+// ── POST DETAIL ────────────────────────────────────────
+async function openForumPost(id) {
+  fCurrentPost = id;
+  const overlay = document.getElementById('post-overlay-home');
+  overlay.classList.add('active');
+  document.body.style.overflow = 'hidden';
+
+  const post = fPosts.find(p => p.id === id);
+  if (post) sb.from('posts').update({ views: (post.views||0)+1 }).eq('id', id);
+
+  const { data: p } = await sb.from('posts').select(`*, profiles(username,avatar_color), categories(name,icon)`).eq('id', id).single();
+  document.getElementById('pod-content').innerHTML = `
+    <div class="post-dh">
+      <div class="post-dcat">${p.categories?.icon||''} ${p.categories?.name||''}</div>
+      <div class="post-dtitle">${p.title}</div>
+      <div class="post-dmeta">
+        <span>By @${p.profiles?.username||'Unknown'}</span>
+        <span>•</span><span>${fTimeAgo(p.created_at)}</span>
+        <span>•</span><span>${p.views||0} views</span>
+      </div>
+      <div class="post-dcontent">${p.content}</div>
+    </div>`;
+
+  await loadForumReplies(id);
+  renderReplyForm();
+}
+
+function closePostOverlay() {
+  document.getElementById('post-overlay-home').classList.remove('active');
+  document.body.style.overflow = '';
+  fCurrentPost = null;
+  loadForumPosts();
+}
+
+async function loadForumReplies(postId) {
+  const { data } = await sb.from('replies').select(`*, profiles(username,avatar_color)`).eq('post_id', postId).order('created_at');
+  const count = data?.length || 0;
+  document.getElementById('pod-replies-title').textContent = `${count} ${count===1?'Reply':'Replies'}`;
+  document.getElementById('pod-replies').innerHTML = count ? (data||[]).map(r => {
+    const color = r.profiles?.avatar_color || '#4ade80';
+    const init = r.profiles?.username?.[0]?.toUpperCase() || '?';
+    return `<div class="reply-c">
+      <div class="rav" style="background:${color}18;color:${color};">${init}</div>
+      <div class="rb">
+        <div class="rauth">@${r.profiles?.username||'Unknown'}<span class="rtime">${fTimeAgo(r.created_at)}</span></div>
+        <div class="rcontent">${r.content}</div>
+      </div>
+    </div>`;
+  }).join('') : `<div class="forum-empty" style="padding:32px 0;"><div class="forum-empty-txt">No replies yet.</div></div>`;
+}
+
+function renderReplyForm() {
+  const el = document.getElementById('pod-reply-form');
+  if (fUser) {
+    el.innerHTML = `<div class="reply-form-home"><h3>Leave a Reply</h3>
+      <textarea class="reply-ta" id="pod-reply-ta" placeholder="Write your reply..."></textarea>
+      <button class="reply-sub" onclick="submitForumReply()">Post Reply</button>
+    </div>`;
+  } else {
+    el.innerHTML = `<div class="login-prompt-home"><a onclick="openFAuth('login')">Log in</a> to leave a reply.</div>`;
+  }
+}
+
+async function submitForumReply() {
+  if (!fUser) return openFAuth('login');
+  const content = document.getElementById('pod-reply-ta').value.trim();
+  if (!content) return fToast('❌ Reply cannot be empty', true);
+  const { error } = await sb.from('replies').insert({ content, post_id: fCurrentPost, author_id: fUser.id });
+  if (error) return fToast('❌ ' + error.message, true);
+  document.getElementById('pod-reply-ta').value = '';
+  await loadForumReplies(fCurrentPost);
+  fToast('✓ Reply posted!');
+}
+
+// ── NEW POST ───────────────────────────────────────────
+function openNewPostHome() {
+  if (!fUser) return openFAuth('login');
+  document.getElementById('fmodal-post').classList.add('active');
+}
+
+async function submitForumPost() {
+  if (!fUser) return openFAuth('login');
+  const title = document.getElementById('f-post-title').value.trim();
+  const content = document.getElementById('f-post-content').value.trim();
+  const category_id = parseInt(document.getElementById('f-post-cat').value);
+  if (!title) return fToast('❌ Title is required', true);
+  if (!content) return fToast('❌ Content is required', true);
+  const { error } = await sb.from('posts').insert({ title, content, category_id, author_id: fUser.id });
+  if (error) return fToast('❌ ' + error.message, true);
+  closeFModal('fmodal-post');
+  document.getElementById('f-post-title').value = '';
+  document.getElementById('f-post-content').value = '';
+  await loadForumPosts();
+  fToast('✓ Post published!');
+}
+
+// ── AUTH MODAL ─────────────────────────────────────────
+function openFAuth(tab) {
+  document.getElementById('fmodal-auth').classList.add('active');
+  switchFTab(tab);
+}
+
+function switchFTab(tab) {
+  document.getElementById('fauth-login').style.display = tab==='login' ? 'block' : 'none';
+  document.getElementById('fauth-signup').style.display = tab==='signup' ? 'block' : 'none';
+  document.getElementById('ftab-login').classList.toggle('active', tab==='login');
+  document.getElementById('ftab-signup').classList.toggle('active', tab==='signup');
+  document.getElementById('fauth-title').textContent = tab==='login' ? 'Log In' : 'Sign Up';
+}
+
+function closeFModal(id) { document.getElementById(id).classList.remove('active'); }
+
+// ── UTILS ──────────────────────────────────────────────
+function fToast(msg, isErr=false) {
+  const el = document.getElementById('ftoast');
+  if (!el) return;
+  el.className = 'ftoast active' + (isErr ? ' err' : '');
+  document.getElementById('ftoast-icon').textContent = isErr ? '❌' : '✓';
+  document.getElementById('ftoast-msg').textContent = msg.replace(/^[❌✓]\s*/,'');
+  clearTimeout(window._fToastTimer);
+  window._fToastTimer = setTimeout(() => el.classList.remove('active'), 3500);
+}
+
+function fTimeAgo(dateStr) {
+  const diff = Math.floor((Date.now() - new Date(dateStr)) / 1000);
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
+  return `${Math.floor(diff/86400)}d ago`;
+}
+
+// ── LOAD SUPABASE SCRIPT & INIT ────────────────────────
+(function() {
+  const s = document.createElement('script');
+  s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+  s.onload = initSupabase;
+  document.head.appendChild(s);
+})();
