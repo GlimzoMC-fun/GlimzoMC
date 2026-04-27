@@ -458,8 +458,9 @@ buildAnnouncements();
 buildEvents();
 buildChangelog();
 
+
 // ═══════════════════════════════════════════════════════
-//  FORUM ON HOMEPAGE — Supabase Integration
+//  FORUM — SUPABASE (Hypixel-style)
 // ═══════════════════════════════════════════════════════
 const SUPABASE_URL = 'https://bglgsikoblveeofpdyuv.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJnbGdzaWtvYmx2ZWVvZnBkeXV2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxNzAyNDEsImV4cCI6MjA5Mjc0NjI0MX0.9WdcO6cvrbQ93TIGcgDOR6MU5VKD6zovEkYd-aNWYAA';
@@ -467,65 +468,59 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 let sb = null;
 let fUser = null;
 let fProfile = null;
-let fPosts = [];
+let fAllPosts = [];
 let fCats = [];
 let fActiveCat = null;
 let fCurrentPost = null;
 
+const ADMIN_EMOJIS = ['🛡️','⚔️','🏆','💥','🔥','🌟','📢'];
+
 function initSupabase() {
   if (typeof supabase === 'undefined') return;
   sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  injectForumDOM();
   initForumAuth();
-  loadForumCategories();
-  loadForumPosts();
-  injectForumHTML();
+  loadForumData();
 }
 
-function injectForumHTML() {
+// ── DOM INJECTION ──────────────────────────────────────
+function injectForumDOM() {
   // Post detail overlay
   if (!document.getElementById('post-overlay-home')) {
-    const overlay = document.createElement('div');
-    overlay.id = 'post-overlay-home';
-    overlay.className = 'post-overlay';
-    overlay.innerHTML = `<div class="post-overlay-inner">
+    const o = document.createElement('div');
+    o.id = 'post-overlay-home';
+    o.className = 'post-overlay';
+    o.innerHTML = `<div class="post-overlay-inner">
       <button class="back-btn-home" onclick="closePostOverlay()">← Back to Forum</button>
       <div id="pod-content"></div>
       <div id="pod-replies-title" class="replies-hd">Replies</div>
       <div id="pod-replies"></div>
       <div id="pod-reply-form"></div>
     </div>`;
-    document.body.appendChild(overlay);
+    document.body.appendChild(o);
   }
-
   // New post modal
   if (!document.getElementById('fmodal-post')) {
     const m = document.createElement('div');
     m.id = 'fmodal-post';
     m.className = 'fmodal-overlay';
     m.innerHTML = `<div class="fmodal">
-      <div class="fmodal-hd">
-        <div class="fmodal-title">New Post</div>
-        <button class="fmodal-close" onclick="closeFModal('fmodal-post')">✕</button>
-      </div>
+      <div class="fmodal-hd"><div class="fmodal-title">New Post</div><button class="fmodal-close" onclick="closeFModal('fmodal-post')">✕</button></div>
       <div class="fform-group"><label class="fform-label">Title</label><input type="text" class="fform-input" id="f-post-title" placeholder="What's your post about?" /></div>
       <div class="fform-group"><label class="fform-label">Category</label><select class="fform-select" id="f-post-cat"></select></div>
       <div class="fform-group"><label class="fform-label">Content</label><textarea class="fform-textarea" id="f-post-content" placeholder="Write your post..."></textarea></div>
       <button class="fform-submit" onclick="submitForumPost()">Publish Post</button>
     </div>`;
-    m.addEventListener('click', e => { if (e.target === m) closeFModal('fmodal-post'); });
+    m.addEventListener('click', e => { if (e.target===m) closeFModal('fmodal-post'); });
     document.body.appendChild(m);
   }
-
   // Auth modal
   if (!document.getElementById('fmodal-auth')) {
     const m = document.createElement('div');
     m.id = 'fmodal-auth';
     m.className = 'fmodal-overlay';
     m.innerHTML = `<div class="fmodal">
-      <div class="fmodal-hd">
-        <div class="fmodal-title" id="fauth-title">Log In</div>
-        <button class="fmodal-close" onclick="closeFModal('fmodal-auth')">✕</button>
-      </div>
+      <div class="fmodal-hd"><div class="fmodal-title" id="fauth-title">Log In</div><button class="fmodal-close" onclick="closeFModal('fmodal-auth')">✕</button></div>
       <div class="auth-tabs-home">
         <button class="auth-tab-home active" id="ftab-login" onclick="switchFTab('login')">Log In</button>
         <button class="auth-tab-home" id="ftab-signup" onclick="switchFTab('signup')">Sign Up</button>
@@ -542,15 +537,13 @@ function injectForumHTML() {
         <button class="fform-submit" onclick="forumSignup()">Create Account</button>
       </div>
     </div>`;
-    m.addEventListener('click', e => { if (e.target === m) closeFModal('fmodal-auth'); });
+    m.addEventListener('click', e => { if (e.target===m) closeFModal('fmodal-auth'); });
     document.body.appendChild(m);
   }
-
   // Toast
   if (!document.getElementById('ftoast')) {
     const t = document.createElement('div');
-    t.id = 'ftoast';
-    t.className = 'ftoast';
+    t.id = 'ftoast'; t.className = 'ftoast';
     t.innerHTML = `<span id="ftoast-icon">✓</span><span id="ftoast-msg"></span>`;
     document.body.appendChild(t);
   }
@@ -562,7 +555,7 @@ async function initForumAuth() {
   if (session?.user) await setForumUser(session.user);
   sb.auth.onAuthStateChange(async (_, session) => {
     if (session?.user) await setForumUser(session.user);
-    else { fUser = null; fProfile = null; renderForumNav(); }
+    else { fUser=null; fProfile=null; renderForumNav(); }
   });
 }
 
@@ -574,20 +567,42 @@ async function setForumUser(user) {
 }
 
 function renderForumNav() {
+  // Update nav-right
   const navRight = document.getElementById('nav-right');
-  if (!navRight) return;
+  if (navRight) {
+    if (fUser && fProfile) {
+      const init = fProfile.username[0].toUpperCase();
+      navRight.innerHTML = `<div class="user-bar">
+        <div class="user-avatar" style="background:${fProfile.avatar_color}22;color:${fProfile.avatar_color};">${init}</div>
+        <span class="user-name">${fProfile.username}</span>
+        <button class="btn-signout" onclick="forumSignout()">Sign Out</button>
+      </div>`;
+    } else {
+      navRight.innerHTML = `
+        <button class="btn-nav outline" onclick="openFAuth('login')" style="background:none;color:var(--gr);border:1px solid rgba(74,222,128,.25);padding:9px 20px;border-radius:7px;font-family:'Barlow',sans-serif;font-weight:800;font-size:13px;cursor:pointer;">Log In</button>
+        <button class="btn-nav" onclick="openFAuth('signup')" style="background:#4ade80;color:#050d08;border:none;padding:9px 20px;border-radius:7px;font-family:'Barlow',sans-serif;font-weight:800;font-size:13px;cursor:pointer;">Sign Up</button>`;
+    }
+  }
+  // Update sidebar auth card
+  const authCard = document.getElementById('fhx-auth-card');
+  if (!authCard) return;
   if (fUser && fProfile) {
     const init = fProfile.username[0].toUpperCase();
-    navRight.innerHTML = `<div class="user-bar">
-      <div class="user-avatar" style="background:${fProfile.avatar_color}22;color:${fProfile.avatar_color};">${init}</div>
-      <span class="user-name">${fProfile.username}</span>
-      <button class="btn-signout" onclick="forumSignout()">Sign Out</button>
-    </div>`;
+    const isAdmin = fProfile.role === 'admin';
+    authCard.innerHTML = `<div class="fhx-card-title">${isAdmin ? '🛡️ Staff' : '👤 Account'}</div>
+      <div class="fhx-user-bar">
+        <div class="fhx-user-av" style="background:${fProfile.avatar_color}22;color:${fProfile.avatar_color};">${init}</div>
+        <span class="fhx-user-name">${fProfile.username}${isAdmin ? ' <span style="font-size:10px;color:var(--g);font-weight:800;">[ADMIN]</span>' : ''}</span>
+        <button class="fhx-signout" onclick="forumSignout()">Sign Out</button>
+      </div>`;
   } else {
-    navRight.innerHTML = `
-      <button class="btn-nav outline" onclick="openFAuth('login')" style="background:none;color:var(--gr);border:1px solid rgba(74,222,128,.25);padding:9px 20px;border-radius:7px;font-family:'Barlow',sans-serif;font-weight:800;font-size:13px;cursor:pointer;">Log In</button>
-      <button class="btn-nav" onclick="openFAuth('signup')" style="background:var(--g);color:#050d08;border:none;padding:9px 20px;border-radius:7px;font-family:'Barlow',sans-serif;font-weight:800;font-size:13px;cursor:pointer;">Sign Up</button>`;
+    authCard.innerHTML = `<div class="fhx-card-title">Join the Community</div>
+      <div class="fhx-auth-btns">
+        <button class="fhx-btn-login" onclick="openFAuth('login')">Log In</button>
+        <button class="fhx-btn-signup" onclick="openFAuth('signup')">Sign Up</button>
+      </div>`;
   }
+  renderReplyForm();
 }
 
 async function forumLogin() {
@@ -595,8 +610,7 @@ async function forumLogin() {
   const pw = document.getElementById('f-login-pw').value;
   const { error } = await sb.auth.signInWithPassword({ email, password: pw });
   if (error) return fToast('❌ ' + error.message, true);
-  closeFModal('fmodal-auth');
-  fToast('✓ Logged in!');
+  closeFModal('fmodal-auth'); fToast('✓ Logged in!');
 }
 
 async function forumSignup() {
@@ -607,82 +621,148 @@ async function forumSignup() {
   const { data, error } = await sb.auth.signUp({ email, password: pw });
   if (error) return fToast('❌ ' + error.message, true);
   if (data.user) await sb.from('profiles').insert({ id: data.user.id, username, avatar_color: '#4ade80' });
-  closeFModal('fmodal-auth');
-  fToast('✓ Account created! Check your email.');
+  closeFModal('fmodal-auth'); fToast('✓ Account created! Check your email to confirm.');
 }
 
 async function forumSignout() {
-  await sb.auth.signOut();
-  fToast('✓ Signed out');
+  await sb.auth.signOut(); fToast('✓ Signed out');
+}
+
+// ── LOAD ALL DATA ──────────────────────────────────────
+async function loadForumData() {
+  await loadForumCategories();
+  const { data } = await sb.from('posts')
+    .select(`*, profiles(username, avatar_color, role), categories(name, icon), replies(count)`)
+    .order('created_at', { ascending: false });
+  fAllPosts = data || [];
+  renderAdminPosts();
+  renderCommunityPosts();
+  renderLatestFeed();
 }
 
 // ── CATEGORIES ────────────────────────────────────────
 async function loadForumCategories() {
   const { data } = await sb.from('categories').select('*').order('id');
   fCats = data || [];
-  const list = document.getElementById('cat-list-home');
-  const sel = document.getElementById('f-post-cat');
-  if (!list) return;
 
-  list.innerHTML = `<div class="cat-item-home active" onclick="filterForumCat(null,this)"><span class="ce">📋</span><span class="cn">All Posts</span></div>`;
-  fCats.forEach(c => {
-    list.innerHTML += `<div class="cat-item-home" onclick="filterForumCat(${c.id},this)"><span class="ce">${c.icon}</span><span class="cn">${c.name}</span></div>`;
-    if (sel) sel.innerHTML += `<option value="${c.id}">${c.icon} ${c.name}</option>`;
-  });
+  // Sidebar cat list
+  const list = document.getElementById('cat-list-home');
+  if (list) {
+    list.innerHTML = `<div class="cat-item-home active" onclick="filterForumCat(null,this)"><span class="ce">📋</span><span class="cn">All Posts</span></div>`;
+    fCats.forEach(c => {
+      list.innerHTML += `<div class="cat-item-home" onclick="filterForumCat(${c.id},this)"><span class="ce">${c.icon}</span><span class="cn">${c.name}</span></div>`;
+    });
+  }
+
+  // Category pills
+  const pills = document.getElementById('cat-pills-home');
+  if (pills) {
+    pills.innerHTML = `<span class="cat-pill active" onclick="filterForumCat(null,this)">All</span>`;
+    fCats.forEach(c => {
+      pills.innerHTML += `<span class="cat-pill" onclick="filterForumCat(${c.id},this)">${c.icon} ${c.name}</span>`;
+    });
+  }
+
+  // New post select
+  const sel = document.getElementById('f-post-cat');
+  if (sel) {
+    sel.innerHTML = '';
+    fCats.forEach(c => sel.innerHTML += `<option value="${c.id}">${c.icon} ${c.name}</option>`);
+  }
 }
 
 function filterForumCat(id, el) {
   fActiveCat = id;
   document.querySelectorAll('.cat-item-home').forEach(i => i.classList.remove('active'));
+  document.querySelectorAll('.cat-pill').forEach(i => i.classList.remove('active'));
   el.classList.add('active');
-  renderForumPosts();
+  renderCommunityPosts();
 }
 
-// ── POSTS ──────────────────────────────────────────────
-async function loadForumPosts() {
-  const { data } = await sb.from('posts')
-    .select(`*, profiles(username,avatar_color), categories(name,icon), replies(count)`)
-    .order('created_at', { ascending: false });
-  fPosts = data || [];
-  renderForumPosts();
-}
-
-function renderForumPosts() {
-  const list = document.getElementById('posts-list-home');
+// ── ADMIN POSTS (big Hypixel-style cards) ─────────────
+function renderAdminPosts() {
+  const list = document.getElementById('admin-posts-list');
   if (!list) return;
-  const search = (document.getElementById('forum-search-home')?.value || '').toLowerCase();
-  let filtered = fPosts;
-  if (fActiveCat) filtered = filtered.filter(p => p.category_id === fActiveCat);
-  if (search) filtered = filtered.filter(p => p.title.toLowerCase().includes(search) || p.content.toLowerCase().includes(search));
-
-  if (!filtered.length) {
-    list.innerHTML = `<div class="forum-empty"><div class="forum-empty-icon">💬</div><div class="forum-empty-txt">No posts yet. Be the first!</div></div>`;
+  const adminPosts = fAllPosts.filter(p => p.profiles?.role === 'admin');
+  if (!adminPosts.length) {
+    list.innerHTML = `<div style="font-size:13px;color:var(--gr);opacity:.4;padding:12px 0;">No announcements yet.</div>`;
     return;
   }
-
-  list.innerHTML = filtered.map(p => {
-    const init = p.profiles?.username?.[0]?.toUpperCase() || '?';
-    const color = p.profiles?.avatar_color || '#4ade80';
+  list.innerHTML = adminPosts.map((p, i) => {
+    const emoji = ADMIN_EMOJIS[i % ADMIN_EMOJIS.length];
     const replies = p.replies?.[0]?.count || 0;
-    return `<div class="post-card-home" onclick="openForumPost(${p.id})">
-      <div class="pav" style="background:${color}18;color:${color};">${init}</div>
-      <div class="pc">
-        <div class="pt">${p.title}</div>
-        <div class="pm">
-          <span class="pa">@${p.profiles?.username || 'Unknown'}</span>
-          <span class="pcat">${p.categories?.icon || ''} ${p.categories?.name || ''}</span>
-          <span class="ptime">${fTimeAgo(p.created_at)}</span>
+    const excerpt = p.content.length > 160 ? p.content.slice(0, 160) + '...' : p.content;
+    return `<div class="admin-post-card" onclick="openForumPost(${p.id})">
+      <div class="admin-post-banner">${emoji}</div>
+      <div class="admin-post-body">
+        <div class="admin-post-meta">
+          <span class="admin-badge">📢 Admin</span>
+          <span class="admin-name">@${p.profiles?.username || 'Staff'}</span>
+          <span class="admin-time">${fTimeAgo(p.created_at)}</span>
         </div>
-      </div>
-      <div class="ps">
-        <span class="pr">${replies} ${replies===1?'reply':'replies'}</span>
-        <span class="pv">${p.views||0} views</span>
+        <div class="admin-post-title">${p.title}</div>
+        <div class="admin-post-excerpt">${excerpt}</div>
+        <div class="admin-post-footer">
+          <span class="admin-reply-count">💬 ${replies} ${replies===1?'reply':'replies'}</span>
+          <span class="admin-read-more">Read More →</span>
+        </div>
       </div>
     </div>`;
   }).join('');
 }
 
-function filterPostsHome() { renderForumPosts(); }
+// ── COMMUNITY POSTS (compact list) ────────────────────
+function renderCommunityPosts() {
+  const list = document.getElementById('posts-list-home');
+  if (!list) return;
+  const search = (document.getElementById('forum-search-home')?.value || '').toLowerCase();
+  let posts = fAllPosts.filter(p => p.profiles?.role !== 'admin');
+  if (fActiveCat) posts = posts.filter(p => p.category_id === fActiveCat);
+  if (search) posts = posts.filter(p => p.title.toLowerCase().includes(search) || p.content.toLowerCase().includes(search));
+
+  if (!posts.length) {
+    list.innerHTML = `<div class="forum-empty"><div class="forum-empty-icon">💬</div><div class="forum-empty-txt">No posts yet. Be the first!</div></div>`;
+    return;
+  }
+  list.innerHTML = posts.map(p => {
+    const color = p.profiles?.avatar_color || '#4ade80';
+    const init = p.profiles?.username?.[0]?.toUpperCase() || '?';
+    const replies = p.replies?.[0]?.count || 0;
+    return `<div class="community-post-card" onclick="openForumPost(${p.id})">
+      <div class="cpav" style="background:${color}18;color:${color};">${init}</div>
+      <div class="cpc">
+        <div class="cpt">${p.title}</div>
+        <div class="cpm">
+          <span class="cpauth">@${p.profiles?.username||'Unknown'}</span>
+          <span class="cpcat">${p.categories?.icon||''} ${p.categories?.name||''}</span>
+          <span class="cptime">${fTimeAgo(p.created_at)}</span>
+        </div>
+      </div>
+      <div class="cps"><span class="cpr">💬 ${replies}</span></div>
+    </div>`;
+  }).join('');
+}
+
+function filterPostsHome() { renderCommunityPosts(); }
+
+// ── LATEST FEED (sidebar) ──────────────────────────────
+function renderLatestFeed() {
+  const feed = document.getElementById('latest-posts-feed');
+  if (!feed) return;
+  const latest = fAllPosts.slice(0, 8);
+  if (!latest.length) { feed.innerHTML = `<div style="padding:14px;font-size:12px;color:var(--gr);opacity:.4;">No posts yet.</div>`; return; }
+  feed.innerHTML = latest.map(p => {
+    const color = p.profiles?.avatar_color || '#4ade80';
+    const init = p.profiles?.username?.[0]?.toUpperCase() || '?';
+    return `<div class="latest-post-item" onclick="openForumPost(${p.id})">
+      <div class="lpi-av" style="background:${color}18;color:${color};">${init}</div>
+      <div class="lpi-info">
+        <div class="lpi-title">${p.title.length>48?p.title.slice(0,48)+'...':p.title}</div>
+        <div class="lpi-meta">@${p.profiles?.username||'Unknown'} · ${fTimeAgo(p.created_at)}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
 
 // ── POST DETAIL ────────────────────────────────────────
 async function openForumPost(id) {
@@ -691,16 +771,21 @@ async function openForumPost(id) {
   overlay.classList.add('active');
   document.body.style.overflow = 'hidden';
 
-  const post = fPosts.find(p => p.id === id);
+  const post = fAllPosts.find(p => p.id === id);
   if (post) sb.from('posts').update({ views: (post.views||0)+1 }).eq('id', id);
 
-  const { data: p } = await sb.from('posts').select(`*, profiles(username,avatar_color), categories(name,icon)`).eq('id', id).single();
+  const { data: p } = await sb.from('posts').select(`*, profiles(username,avatar_color,role), categories(name,icon)`).eq('id', id).single();
+  const isAdmin = p.profiles?.role === 'admin';
+  const color = p.profiles?.avatar_color || '#4ade80';
+
   document.getElementById('pod-content').innerHTML = `
     <div class="post-dh">
       <div class="post-dcat">${p.categories?.icon||''} ${p.categories?.name||''}</div>
+      ${isAdmin ? '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.25);padding:3px 10px;border-radius:100px;font-size:10px;font-weight:800;letter-spacing:2px;color:var(--g);margin-bottom:10px;">📢 STAFF ANNOUNCEMENT</div>' : ''}
       <div class="post-dtitle">${p.title}</div>
       <div class="post-dmeta">
-        <span>By @${p.profiles?.username||'Unknown'}</span>
+        <span style="color:${color};font-weight:700;">@${p.profiles?.username||'Unknown'}</span>
+        ${isAdmin ? '<span style="font-size:10px;background:rgba(74,222,128,.1);color:var(--g);padding:2px 8px;border-radius:100px;font-weight:800;">[ADMIN]</span>' : ''}
         <span>•</span><span>${fTimeAgo(p.created_at)}</span>
         <span>•</span><span>${p.views||0} views</span>
       </div>
@@ -715,28 +800,34 @@ function closePostOverlay() {
   document.getElementById('post-overlay-home').classList.remove('active');
   document.body.style.overflow = '';
   fCurrentPost = null;
-  loadForumPosts();
+  loadForumData();
 }
 
 async function loadForumReplies(postId) {
-  const { data } = await sb.from('replies').select(`*, profiles(username,avatar_color)`).eq('post_id', postId).order('created_at');
+  const { data } = await sb.from('replies').select(`*, profiles(username,avatar_color,role)`).eq('post_id', postId).order('created_at');
   const count = data?.length || 0;
   document.getElementById('pod-replies-title').textContent = `${count} ${count===1?'Reply':'Replies'}`;
   document.getElementById('pod-replies').innerHTML = count ? (data||[]).map(r => {
     const color = r.profiles?.avatar_color || '#4ade80';
     const init = r.profiles?.username?.[0]?.toUpperCase() || '?';
-    return `<div class="reply-c">
+    const isAdmin = r.profiles?.role === 'admin';
+    return `<div class="reply-c" style="${isAdmin?'border-color:rgba(74,222,128,.2);background:rgba(74,222,128,.04);':''}">
       <div class="rav" style="background:${color}18;color:${color};">${init}</div>
       <div class="rb">
-        <div class="rauth">@${r.profiles?.username||'Unknown'}<span class="rtime">${fTimeAgo(r.created_at)}</span></div>
+        <div class="rauth">
+          @${r.profiles?.username||'Unknown'}
+          ${isAdmin?'<span style="font-size:10px;background:rgba(74,222,128,.1);color:var(--g);padding:1px 7px;border-radius:100px;font-weight:800;margin-left:6px;">[ADMIN]</span>':''}
+          <span class="rtime">${fTimeAgo(r.created_at)}</span>
+        </div>
         <div class="rcontent">${r.content}</div>
       </div>
     </div>`;
-  }).join('') : `<div class="forum-empty" style="padding:32px 0;"><div class="forum-empty-txt">No replies yet.</div></div>`;
+  }).join('') : `<div class="forum-empty" style="padding:28px 0;"><div class="forum-empty-txt">No replies yet. Start the conversation!</div></div>`;
 }
 
 function renderReplyForm() {
   const el = document.getElementById('pod-reply-form');
+  if (!el) return;
   if (fUser) {
     el.innerHTML = `<div class="reply-form-home"><h3>Leave a Reply</h3>
       <textarea class="reply-ta" id="pod-reply-ta" placeholder="Write your reply..."></textarea>
@@ -749,7 +840,7 @@ function renderReplyForm() {
 
 async function submitForumReply() {
   if (!fUser) return openFAuth('login');
-  const content = document.getElementById('pod-reply-ta').value.trim();
+  const content = document.getElementById('pod-reply-ta')?.value.trim();
   if (!content) return fToast('❌ Reply cannot be empty', true);
   const { error } = await sb.from('replies').insert({ content, post_id: fCurrentPost, author_id: fUser.id });
   if (error) return fToast('❌ ' + error.message, true);
@@ -776,7 +867,7 @@ async function submitForumPost() {
   closeFModal('fmodal-post');
   document.getElementById('f-post-title').value = '';
   document.getElementById('f-post-content').value = '';
-  await loadForumPosts();
+  await loadForumData();
   fToast('✓ Post published!');
 }
 
@@ -785,37 +876,34 @@ function openFAuth(tab) {
   document.getElementById('fmodal-auth').classList.add('active');
   switchFTab(tab);
 }
-
 function switchFTab(tab) {
-  document.getElementById('fauth-login').style.display = tab==='login' ? 'block' : 'none';
-  document.getElementById('fauth-signup').style.display = tab==='signup' ? 'block' : 'none';
+  document.getElementById('fauth-login').style.display = tab==='login'?'block':'none';
+  document.getElementById('fauth-signup').style.display = tab==='signup'?'block':'none';
   document.getElementById('ftab-login').classList.toggle('active', tab==='login');
   document.getElementById('ftab-signup').classList.toggle('active', tab==='signup');
-  document.getElementById('fauth-title').textContent = tab==='login' ? 'Log In' : 'Sign Up';
+  document.getElementById('fauth-title').textContent = tab==='login'?'Log In':'Sign Up';
 }
-
 function closeFModal(id) { document.getElementById(id).classList.remove('active'); }
 
 // ── UTILS ──────────────────────────────────────────────
 function fToast(msg, isErr=false) {
   const el = document.getElementById('ftoast');
   if (!el) return;
-  el.className = 'ftoast active' + (isErr ? ' err' : '');
-  document.getElementById('ftoast-icon').textContent = isErr ? '❌' : '✓';
+  el.className = 'ftoast active' + (isErr?' err':'');
+  document.getElementById('ftoast-icon').textContent = isErr?'❌':'✓';
   document.getElementById('ftoast-msg').textContent = msg.replace(/^[❌✓]\s*/,'');
   clearTimeout(window._fToastTimer);
   window._fToastTimer = setTimeout(() => el.classList.remove('active'), 3500);
 }
-
-function fTimeAgo(dateStr) {
-  const diff = Math.floor((Date.now() - new Date(dateStr)) / 1000);
-  if (diff < 60) return 'just now';
-  if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
-  return `${Math.floor(diff/86400)}d ago`;
+function fTimeAgo(d) {
+  const s = Math.floor((Date.now()-new Date(d))/1000);
+  if (s<60) return 'just now';
+  if (s<3600) return `${Math.floor(s/60)}m ago`;
+  if (s<86400) return `${Math.floor(s/3600)}h ago`;
+  return `${Math.floor(s/86400)}d ago`;
 }
 
-// ── LOAD SUPABASE SCRIPT & INIT ────────────────────────
+// ── INIT ───────────────────────────────────────────────
 (function() {
   const s = document.createElement('script');
   s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
