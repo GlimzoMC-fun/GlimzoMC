@@ -16,7 +16,7 @@
   <ul class="nav-links">
     <li><a id="nav-home" data-nav="home" class="active">Home</a></li>
     <li><a id="nav-gamemodes" data-nav="gamemodes">Gamemodes</a></li>
-    <li><a href="forum.html">Forum</a></li>
+    <li><a id="nav-community" data-nav="community">Community Portal</a></li>
     <li><a>Store</a></li>
   </ul>
   <div class="nav-right">
@@ -83,75 +83,6 @@
     <div class="feat-item"><span>🔒</span> Zero Pay-to-Win</div>
   </div>
 
-  <!-- FORUM SECTION -->
-  <section id="forum-section">
-    <div class="section-inner">
-
-      <!-- Header -->
-      <div class="forum-home-header">
-        <div>
-          <div class="section-label">Community</div>
-          <h2 class="section-title">Forum</h2>
-          <p class="section-sub">News, updates, and community discussion.</p>
-        </div>
-        <button class="btn-new-post-home" onclick="openNewPostHome()">+ New Post</button>
-      </div>
-
-      <!-- Hypixel-style two column layout -->
-      <div class="forum-hx-layout">
-
-        <!-- MAIN COLUMN: Admin announcements feed + community posts -->
-        <div class="forum-hx-main">
-
-          <!-- Admin announcements (big cards like Hypixel) -->
-          <div class="forum-hx-section-title">
-            <span class="fhx-icon">📢</span> Staff Announcements
-          </div>
-          <div id="admin-posts-list"><div class="forum-loading">Loading...</div></div>
-
-          <!-- Divider -->
-          <div class="forum-hx-divider">
-            <span class="fhx-icon">💬</span> Community Posts
-            <input type="text" class="forum-search-inline" id="forum-search-home" placeholder="Search..." oninput="filterPostsHome()" />
-          </div>
-
-          <!-- Category filter pills -->
-          <div class="forum-cat-pills" id="cat-pills-home"></div>
-
-          <!-- Community posts list -->
-          <div id="posts-list-home"><div class="forum-loading">Loading posts...</div></div>
-
-        </div>
-
-        <!-- SIDEBAR: Latest threads + categories -->
-        <div class="forum-hx-sidebar">
-
-          <!-- Auth card -->
-          <div class="fhx-card" id="fhx-auth-card">
-            <div class="fhx-card-title">Join the Community</div>
-            <div class="fhx-auth-btns">
-              <button class="fhx-btn-login" onclick="openFAuth('login')">Log In</button>
-              <button class="fhx-btn-signup" onclick="openFAuth('signup')">Sign Up</button>
-            </div>
-          </div>
-
-          <!-- Latest posts feed -->
-          <div class="fhx-card">
-            <div class="fhx-card-title">Latest Posts</div>
-            <div id="latest-posts-feed"><div class="forum-loading" style="padding:16px;">Loading...</div></div>
-          </div>
-
-          <!-- Categories -->
-          <div class="fhx-card">
-            <div class="fhx-card-title">Categories</div>
-            <div class="cat-list-home" id="cat-list-home"></div>
-          </div>
-
-        </div>
-      </div>
-    </div>
-  </section>
-
   <!-- CTA BANNER -->
   <section id="cta-banner">
     <div class="cta-banner-bg"></div>
@@ -204,6 +135,66 @@
   </footer>
 
 </div><!-- /page-home -->
+
+<!-- ═══ COMMUNITY PORTAL PAGE ═══ -->
+<div id="page-community" class="page">
+  <div class="section-inner" style="padding-top:120px;">
+
+    <!-- Header -->
+    <div class="forum-home-header">
+      <div>
+        <div class="section-label">GlimzoMC</div>
+        <h2 class="section-title">Community Portal</h2>
+        <p class="section-sub">News, updates, and community discussion — all in one place.</p>
+      </div>
+      <button class="btn-new-post-home" onclick="openNewPostHome()">+ New Post</button>
+    </div>
+
+    <!-- Hypixel-style layout -->
+    <div class="forum-hx-layout">
+
+      <!-- MAIN COLUMN -->
+      <div class="forum-hx-main">
+        <div class="forum-hx-section-title"><span class="fhx-icon">📢</span> Staff Announcements</div>
+        <div id="admin-posts-list"><div class="forum-loading">Loading...</div></div>
+
+        <div class="forum-hx-divider">
+          <span class="fhx-icon">💬</span> Community Posts
+          <input type="text" class="forum-search-inline" id="forum-search-home" placeholder="Search..." oninput="filterPostsHome()" />
+        </div>
+
+        <div class="forum-cat-pills" id="cat-pills-home"></div>
+        <div id="posts-list-home"><div class="forum-loading">Loading posts...</div></div>
+      </div>
+
+      <!-- SIDEBAR -->
+      <div class="forum-hx-sidebar">
+
+        <!-- Auth card -->
+        <div class="fhx-card" id="fhx-auth-card">
+          <div class="fhx-card-title">Join the Community</div>
+          <div class="fhx-auth-btns">
+            <button class="fhx-btn-login" onclick="openFAuth('login')">Log In</button>
+            <button class="fhx-btn-signup" onclick="openFAuth('signup')">Sign Up</button>
+          </div>
+        </div>
+
+        <!-- Latest posts -->
+        <div class="fhx-card">
+          <div class="fhx-card-title">Latest Posts</div>
+          <div id="latest-posts-feed"><div class="forum-loading" style="padding:16px;">Loading...</div></div>
+        </div>
+
+        <!-- Replies sidebar -->
+        <div class="fhx-card" id="fhx-replies-card">
+          <div class="fhx-card-title">💬 Replies</div>
+          <div id="sidebar-replies"><div style="padding:16px;font-size:12px;color:var(--gr);opacity:.4;">Click a post to see replies.</div></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div><!-- /page-community -->
 
 <!-- ═══ GAMEMODES PAGE ═══ -->
 <div id="page-gamemodes" class="page">
