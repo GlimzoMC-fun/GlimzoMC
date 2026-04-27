@@ -147,24 +147,28 @@
         <h2 class="section-title">Community Portal</h2>
         <p class="section-sub">News, updates, and community discussion — all in one place.</p>
       </div>
-      <button class="btn-new-post-home" onclick="openNewPostHome()">+ New Post</button>
+      <button class="btn-new-post-home" onclick="openNewPostHome()">+ New Thread</button>
     </div>
 
-    <!-- Hypixel-style layout -->
+    <!-- Layout -->
     <div class="forum-hx-layout">
 
       <!-- MAIN COLUMN -->
       <div class="forum-hx-main">
-        <div class="forum-hx-section-title"><span class="fhx-icon">📢</span> Staff Announcements</div>
+
+        <!-- Staff announcements — no label, just cards -->
         <div id="admin-posts-list"><div class="forum-loading">Loading...</div></div>
 
-        <div class="forum-hx-divider">
-          <span class="fhx-icon">💬</span> Community Posts
-          <input type="text" class="forum-search-inline" id="forum-search-home" placeholder="Search..." oninput="filterPostsHome()" />
+        <!-- Search bar -->
+        <div class="forum-hx-divider" style="margin-top:8px;">
+          <input type="text" class="forum-search-inline" id="forum-search-home" placeholder="Search threads..." oninput="filterPostsHome()" style="margin-left:0;width:100%;max-width:300px;" />
         </div>
 
+        <!-- Category pills -->
         <div class="forum-cat-pills" id="cat-pills-home"></div>
-        <div id="posts-list-home"><div class="forum-loading">Loading posts...</div></div>
+
+        <!-- Community threads -->
+        <div id="posts-list-home"><div class="forum-loading">Loading...</div></div>
       </div>
 
       <!-- SIDEBAR -->
@@ -179,17 +183,31 @@
           </div>
         </div>
 
-        <!-- Latest posts -->
+        <!-- Latest Threads sidebar -->
+        <div class="fhx-card" id="fhx-replies-card">
+          <div class="fhx-card-title">💬 Latest Threads</div>
+          <div id="sidebar-replies">
+            <div style="padding:16px;font-size:12px;color:var(--gr);opacity:.4;">Click a thread to see replies.</div>
+          </div>
+          <div id="sidebar-reply-form" style="display:none;padding:12px 16px;border-top:1px solid rgba(74,222,128,.08);">
+            <textarea id="sidebar-reply-ta" class="reply-ta" placeholder="Reply to this thread..." style="min-height:70px;width:100%;font-size:13px;"></textarea>
+            <button class="reply-sub" onclick="submitSidebarReply()" style="width:100%;margin-top:8px;">Post Reply</button>
+          </div>
+          <div id="sidebar-reply-prompt" style="display:none;padding:10px 16px;font-size:12px;color:var(--gr);opacity:.5;border-top:1px solid rgba(74,222,128,.08);">
+            <a onclick="openFAuth('login')" style="color:var(--g);cursor:pointer;font-weight:700;">Log in</a> to reply.
+          </div>
+        </div>
+
+        <!-- Recent Activity -->
         <div class="fhx-card">
-          <div class="fhx-card-title">Latest Posts</div>
+          <div class="fhx-card-title">Recent Activity</div>
           <div id="latest-posts-feed"><div class="forum-loading" style="padding:16px;">Loading...</div></div>
         </div>
 
-        <!-- Replies sidebar -->
-        <div class="fhx-card" id="fhx-replies-card">
-          <div class="fhx-card-title">💬 Replies</div>
-          <div id="sidebar-replies"><div style="padding:16px;font-size:12px;color:var(--gr);opacity:.4;">Click a post to see replies.</div></div>
-        </div>
+      </div>
+    </div>
+  </div>
+</div><!-- /page-community -->
 
       </div>
     </div>
