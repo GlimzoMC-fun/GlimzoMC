@@ -138,6 +138,14 @@ function navigate(page) {
       });
     }, 50);
   }
+
+  if (page === 'community') {
+    if (sb) loadForumData();
+  }
+
+  if (page === 'community') {
+    loadForumData();
+  }
 }
 
 // Wire nav clicks
@@ -480,7 +488,10 @@ function initSupabase() {
   sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   injectForumDOM();
   initForumAuth();
-  loadForumData();
+  // Only load forum data if community portal is the active page
+  if (document.getElementById('page-community')?.classList.contains('active')) {
+    loadForumData();
+  }
 }
 
 // ── DOM INJECTION ──────────────────────────────────────
@@ -645,15 +656,6 @@ async function loadForumCategories() {
   const { data } = await sb.from('categories').select('*').order('id');
   fCats = data || [];
 
-  // Sidebar cat list
-  const list = document.getElementById('cat-list-home');
-  if (list) {
-    list.innerHTML = `<div class="cat-item-home active" onclick="filterForumCat(null,this)"><span class="ce">📋</span><span class="cn">All Posts</span></div>`;
-    fCats.forEach(c => {
-      list.innerHTML += `<div class="cat-item-home" onclick="filterForumCat(${c.id},this)"><span class="ce">${c.icon}</span><span class="cn">${c.name}</span></div>`;
-    });
-  }
-
   // Category pills
   const pills = document.getElementById('cat-pills-home');
   if (pills) {
@@ -793,6 +795,7 @@ async function openForumPost(id) {
     </div>`;
 
   await loadForumReplies(id);
+  renderSidebarReplies(id);
   renderReplyForm();
 }
 
@@ -825,6 +828,35 @@ async function loadForumReplies(postId) {
   }).join('') : `<div class="forum-empty" style="padding:28px 0;"><div class="forum-empty-txt">No replies yet. Start the conversation!</div></div>`;
 }
 
+async function renderSidebarReplies(postId) {
+  const sidebar = document.getElementById('sidebar-replies');
+  if (!sidebar) return;
+  const { data } = await sb.from('replies')
+    .select(`*, profiles(username, avatar_color, role)`)
+    .eq('post_id', postId)
+    .order('created_at', { ascending: false })
+    .limit(10);
+
+  if (!data || !data.length) {
+    sidebar.innerHTML = `<div style="padding:14px;font-size:12px;color:var(--gr);opacity:.4;">No replies yet.</div>`;
+    return;
+  }
+
+  sidebar.innerHTML = data.map(r => {
+    const color = r.profiles?.avatar_color || '#4ade80';
+    const init = r.profiles?.username?.[0]?.toUpperCase() || '?';
+    const isAdmin = r.profiles?.role === 'admin';
+    return `<div class="latest-post-item" style="flex-direction:column;align-items:flex-start;gap:6px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="lpi-av" style="background:${color}18;color:${color};">${init}</div>
+        <span style="font-size:12px;font-weight:700;color:${color};">@${r.profiles?.username||'Unknown'}${isAdmin?' <span style="font-size:9px;background:rgba(74,222,128,.1);color:var(--g);padding:1px 6px;border-radius:100px;font-weight:800;">[ADMIN]</span>':''}</span>
+        <span style="font-size:10px;color:var(--gr);opacity:.35;margin-left:auto;">${fTimeAgo(r.created_at)}</span>
+      </div>
+      <div style="font-size:12px;color:var(--gr);opacity:.7;line-height:1.5;padding-left:36px;">${r.content.length>100?r.content.slice(0,100)+'...':r.content}</div>
+    </div>`;
+  }).join('');
+}
+
 function renderReplyForm() {
   const el = document.getElementById('pod-reply-form');
   if (!el) return;
@@ -846,6 +878,7 @@ async function submitForumReply() {
   if (error) return fToast('❌ ' + error.message, true);
   document.getElementById('pod-reply-ta').value = '';
   await loadForumReplies(fCurrentPost);
+  await renderSidebarReplies(fCurrentPost);
   fToast('✓ Reply posted!');
 }
 
