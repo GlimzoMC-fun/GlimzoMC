@@ -86,27 +86,67 @@
   <!-- FORUM SECTION -->
   <section id="forum-section">
     <div class="section-inner">
+
+      <!-- Header -->
       <div class="forum-home-header">
         <div>
           <div class="section-label">Community</div>
           <h2 class="section-title">Forum</h2>
-          <p class="section-sub">Discuss gamemodes, share clips, report bugs, and connect with the community.</p>
+          <p class="section-sub">News, updates, and community discussion.</p>
         </div>
         <button class="btn-new-post-home" onclick="openNewPostHome()">+ New Post</button>
       </div>
 
-      <div class="forum-home-body">
-        <!-- Sidebar -->
-        <div class="forum-home-sidebar">
-          <div class="sidebar-card">
-            <div class="sidebar-card-title">Categories</div>
+      <!-- Hypixel-style two column layout -->
+      <div class="forum-hx-layout">
+
+        <!-- MAIN COLUMN: Admin announcements feed + community posts -->
+        <div class="forum-hx-main">
+
+          <!-- Admin announcements (big cards like Hypixel) -->
+          <div class="forum-hx-section-title">
+            <span class="fhx-icon">📢</span> Staff Announcements
+          </div>
+          <div id="admin-posts-list"><div class="forum-loading">Loading...</div></div>
+
+          <!-- Divider -->
+          <div class="forum-hx-divider">
+            <span class="fhx-icon">💬</span> Community Posts
+            <input type="text" class="forum-search-inline" id="forum-search-home" placeholder="Search..." oninput="filterPostsHome()" />
+          </div>
+
+          <!-- Category filter pills -->
+          <div class="forum-cat-pills" id="cat-pills-home"></div>
+
+          <!-- Community posts list -->
+          <div id="posts-list-home"><div class="forum-loading">Loading posts...</div></div>
+
+        </div>
+
+        <!-- SIDEBAR: Latest threads + categories -->
+        <div class="forum-hx-sidebar">
+
+          <!-- Auth card -->
+          <div class="fhx-card" id="fhx-auth-card">
+            <div class="fhx-card-title">Join the Community</div>
+            <div class="fhx-auth-btns">
+              <button class="fhx-btn-login" onclick="openFAuth('login')">Log In</button>
+              <button class="fhx-btn-signup" onclick="openFAuth('signup')">Sign Up</button>
+            </div>
+          </div>
+
+          <!-- Latest posts feed -->
+          <div class="fhx-card">
+            <div class="fhx-card-title">Latest Posts</div>
+            <div id="latest-posts-feed"><div class="forum-loading" style="padding:16px;">Loading...</div></div>
+          </div>
+
+          <!-- Categories -->
+          <div class="fhx-card">
+            <div class="fhx-card-title">Categories</div>
             <div class="cat-list-home" id="cat-list-home"></div>
           </div>
-        </div>
-        <!-- Posts -->
-        <div class="forum-home-main">
-          <input type="text" class="forum-search-home" id="forum-search-home" placeholder="Search posts..." oninput="filterPostsHome()" />
-          <div class="posts-list-home" id="posts-list-home"><div class="forum-loading">Loading posts...</div></div>
+
         </div>
       </div>
     </div>
