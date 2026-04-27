@@ -614,6 +614,7 @@ function renderForumNav() {
       </div>`;
   }
   renderReplyForm();
+  if (fCurrentPost) renderSidebarReplies(fCurrentPost);
 }
 
 async function forumLogin() {
@@ -687,7 +688,7 @@ function renderAdminPosts() {
   if (!list) return;
   const adminPosts = fAllPosts.filter(p => p.profiles?.role === 'admin');
   if (!adminPosts.length) {
-    list.innerHTML = `<div style="font-size:13px;color:var(--gr);opacity:.4;padding:12px 0;">No announcements yet.</div>`;
+    list.innerHTML = '';
     return;
   }
   list.innerHTML = adminPosts.map((p, i) => {
@@ -830,7 +831,10 @@ async function loadForumReplies(postId) {
 
 async function renderSidebarReplies(postId) {
   const sidebar = document.getElementById('sidebar-replies');
+  const replyForm = document.getElementById('sidebar-reply-form');
+  const replyPrompt = document.getElementById('sidebar-reply-prompt');
   if (!sidebar) return;
+
   const { data } = await sb.from('replies')
     .select(`*, profiles(username, avatar_color, role)`)
     .eq('post_id', postId)
@@ -838,23 +842,33 @@ async function renderSidebarReplies(postId) {
     .limit(10);
 
   if (!data || !data.length) {
-    sidebar.innerHTML = `<div style="padding:14px;font-size:12px;color:var(--gr);opacity:.4;">No replies yet.</div>`;
-    return;
+    sidebar.innerHTML = `<div style="padding:14px;font-size:12px;color:var(--gr);opacity:.4;">No replies yet. Be the first!</div>`;
+  } else {
+    sidebar.innerHTML = data.map(r => {
+      const color = r.profiles?.avatar_color || '#4ade80';
+      const init = r.profiles?.username?.[0]?.toUpperCase() || '?';
+      const isAdmin = r.profiles?.role === 'admin';
+      return `<div class="latest-post-item" style="flex-direction:column;align-items:flex-start;gap:6px;">
+        <div style="display:flex;align-items:center;gap:8px;width:100%;">
+          <div class="lpi-av" style="background:${color}18;color:${color};">${init}</div>
+          <span style="font-size:12px;font-weight:700;color:${color};">@${r.profiles?.username||'Unknown'}${isAdmin?' <span style="font-size:9px;background:rgba(74,222,128,.1);color:var(--g);padding:1px 6px;border-radius:100px;font-weight:800;">[ADMIN]</span>':''}</span>
+          <span style="font-size:10px;color:var(--gr);opacity:.35;margin-left:auto;">${fTimeAgo(r.created_at)}</span>
+        </div>
+        <div style="font-size:12px;color:var(--gr);opacity:.75;line-height:1.5;padding-left:36px;">${r.content.length>120?r.content.slice(0,120)+'...':r.content}</div>
+      </div>`;
+    }).join('');
   }
 
-  sidebar.innerHTML = data.map(r => {
-    const color = r.profiles?.avatar_color || '#4ade80';
-    const init = r.profiles?.username?.[0]?.toUpperCase() || '?';
-    const isAdmin = r.profiles?.role === 'admin';
-    return `<div class="latest-post-item" style="flex-direction:column;align-items:flex-start;gap:6px;">
-      <div style="display:flex;align-items:center;gap:8px;">
-        <div class="lpi-av" style="background:${color}18;color:${color};">${init}</div>
-        <span style="font-size:12px;font-weight:700;color:${color};">@${r.profiles?.username||'Unknown'}${isAdmin?' <span style="font-size:9px;background:rgba(74,222,128,.1);color:var(--g);padding:1px 6px;border-radius:100px;font-weight:800;">[ADMIN]</span>':''}</span>
-        <span style="font-size:10px;color:var(--gr);opacity:.35;margin-left:auto;">${fTimeAgo(r.created_at)}</span>
-      </div>
-      <div style="font-size:12px;color:var(--gr);opacity:.7;line-height:1.5;padding-left:36px;">${r.content.length>100?r.content.slice(0,100)+'...':r.content}</div>
-    </div>`;
-  }).join('');
+  // Show reply form or login prompt
+  if (replyForm && replyPrompt) {
+    if (fUser) {
+      replyForm.style.display = 'block';
+      replyPrompt.style.display = 'none';
+    } else {
+      replyForm.style.display = 'none';
+      replyPrompt.style.display = 'block';
+    }
+  }
 }
 
 function renderReplyForm() {
@@ -872,12 +886,28 @@ function renderReplyForm() {
 
 async function submitForumReply() {
   if (!fUser) return openFAuth('login');
-  const content = document.getElementById('pod-reply-ta')?.value.trim();
+  // Try sidebar textarea first, then overlay textarea
+  const ta = document.getElementById('sidebar-reply-ta') || document.getElementById('pod-reply-ta');
+  const content = ta?.value.trim();
   if (!content) return fToast('❌ Reply cannot be empty', true);
   const { error } = await sb.from('replies').insert({ content, post_id: fCurrentPost, author_id: fUser.id });
   if (error) return fToast('❌ ' + error.message, true);
-  document.getElementById('pod-reply-ta').value = '';
+  if (ta) ta.value = '';
   await loadForumReplies(fCurrentPost);
+  await renderSidebarReplies(fCurrentPost);
+  fToast('✓ Reply posted!');
+}
+
+// ── SIDEBAR REPLY ─────────────────────────────────────
+async function submitSidebarReply() {
+  if (!fUser) return openFAuth('login');
+  const ta = document.getElementById('sidebar-reply-ta');
+  const content = ta?.value.trim();
+  if (!content) return fToast('❌ Reply cannot be empty', true);
+  if (!fCurrentPost) return fToast('❌ No thread selected', true);
+  const { error } = await sb.from('replies').insert({ content, post_id: fCurrentPost, author_id: fUser.id });
+  if (error) return fToast('❌ ' + error.message, true);
+  ta.value = '';
   await renderSidebarReplies(fCurrentPost);
   fToast('✓ Reply posted!');
 }
