@@ -648,3 +648,181 @@ footer{
   .forum-home-sidebar { display:none; }
   .forum-home-header { flex-direction:column; align-items:flex-start; }
 }
+
+/* ══════════════════════════════════
+   HYPIXEL-STYLE FORUM LAYOUT
+══════════════════════════════════ */
+.forum-hx-layout { display:grid; grid-template-columns:1fr 300px; gap:32px; align-items:start; }
+
+/* Section titles */
+.forum-hx-section-title {
+  font-family:'Barlow Condensed',sans-serif; font-size:15px; font-weight:900;
+  letter-spacing:2px; text-transform:uppercase; color:var(--gr);
+  display:flex; align-items:center; gap:8px;
+  padding:10px 0 10px; margin-bottom:14px;
+  border-bottom:1px solid rgba(74,222,128,.1);
+}
+.fhx-icon { font-size:16px; }
+.forum-hx-divider {
+  font-family:'Barlow Condensed',sans-serif; font-size:15px; font-weight:900;
+  letter-spacing:2px; text-transform:uppercase; color:var(--gr);
+  display:flex; align-items:center; gap:8px;
+  padding:10px 0 10px; margin:28px 0 14px;
+  border-bottom:1px solid rgba(74,222,128,.1);
+}
+.forum-search-inline {
+  margin-left:auto; background:rgba(74,222,128,.06); border:1px solid rgba(74,222,128,.15);
+  border-radius:7px; padding:6px 12px; color:var(--w); font-family:'Barlow',sans-serif;
+  font-size:12px; outline:none; width:180px; transition:border-color .2s;
+}
+.forum-search-inline:focus { border-color:var(--g); }
+.forum-search-inline::placeholder { color:rgba(134,239,172,.35); }
+
+/* ── ADMIN ANNOUNCEMENT CARDS (Hypixel big post style) ── */
+.admin-post-card {
+  background:var(--bgc); border:1px solid rgba(74,222,128,.12);
+  border-radius:14px; overflow:hidden; margin-bottom:16px;
+  cursor:pointer; transition:all .2s;
+  position:relative;
+}
+.admin-post-card::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:3px;
+  background:linear-gradient(to right, var(--g), #16a34a);
+}
+.admin-post-card:hover { border-color:rgba(74,222,128,.3); transform:translateY(-2px); box-shadow:0 8px 32px rgba(0,0,0,.3); }
+.admin-post-banner {
+  width:100%; height:140px; background:linear-gradient(135deg,#0d2b1a,#052218);
+  display:flex; align-items:center; justify-content:center;
+  font-size:48px; position:relative; overflow:hidden;
+}
+.admin-post-banner::after {
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(to bottom, transparent 40%, var(--bgc));
+}
+.admin-post-body { padding:20px 24px 22px; }
+.admin-post-meta { display:flex; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
+.admin-badge {
+  font-size:10px; font-weight:800; letter-spacing:2px; text-transform:uppercase;
+  background:rgba(74,222,128,.15); color:var(--g);
+  border:1px solid rgba(74,222,128,.3); padding:3px 10px; border-radius:100px;
+}
+.admin-name { font-size:13px; font-weight:700; color:var(--g); }
+.admin-time { font-size:12px; color:var(--gr); opacity:.45; }
+.admin-post-title {
+  font-family:'Barlow Condensed',sans-serif; font-size:26px; font-weight:900;
+  letter-spacing:.5px; color:var(--w); margin-bottom:8px; line-height:1.1;
+}
+.admin-post-excerpt { font-size:14px; color:var(--gr); opacity:.7; line-height:1.6; margin-bottom:14px; }
+.admin-post-footer { display:flex; align-items:center; gap:16px; }
+.admin-reply-count { font-size:12px; color:var(--gr); opacity:.5; }
+.admin-read-more {
+  margin-left:auto; font-size:12px; font-weight:700; color:var(--g);
+  letter-spacing:.5px; opacity:.8;
+}
+
+/* ── COMMUNITY POST CARDS (compact like Hypixel thread list) ── */
+.community-post-card {
+  background:var(--bgc); border:1px solid rgba(74,222,128,.07);
+  border-radius:10px; padding:14px 18px; margin-bottom:8px;
+  cursor:pointer; transition:all .2s;
+  display:flex; align-items:center; gap:14px;
+}
+.community-post-card:hover { background:var(--bge); border-color:rgba(74,222,128,.2); transform:translateX(3px); }
+.cpav {
+  width:36px; height:36px; border-radius:8px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Bebas Neue',sans-serif; font-size:16px;
+}
+.cpc { flex:1; min-width:0; }
+.cpt {
+  font-family:'Barlow Condensed',sans-serif; font-size:17px; font-weight:900;
+  color:var(--w); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:4px;
+}
+.cpm { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.cpauth { font-size:11px; color:var(--gr); opacity:.55; font-weight:600; }
+.cpcat {
+  font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase;
+  padding:2px 7px; border-radius:100px; border:1px solid rgba(74,222,128,.15);
+  background:rgba(74,222,128,.06); color:var(--g);
+}
+.cptime { font-size:11px; color:var(--gr); opacity:.35; }
+.cps { flex-shrink:0; text-align:right; }
+.cpr { font-size:11px; color:var(--gr); opacity:.4; }
+
+/* ── CATEGORY PILLS ── */
+.forum-cat-pills { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+.cat-pill {
+  font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase;
+  padding:5px 14px; border-radius:100px; cursor:pointer;
+  border:1px solid rgba(74,222,128,.15); background:rgba(74,222,128,.05);
+  color:var(--gr); transition:all .2s;
+}
+.cat-pill:hover { border-color:var(--g); color:var(--g); }
+.cat-pill.active { background:rgba(74,222,128,.12); border-color:var(--g); color:var(--g); }
+
+/* ── SIDEBAR CARDS ── */
+.fhx-card {
+  background:var(--bgc); border:1px solid rgba(74,222,128,.1);
+  border-radius:12px; overflow:hidden; margin-bottom:16px;
+}
+.fhx-card-title {
+  font-size:11px; font-weight:700; letter-spacing:2px; text-transform:uppercase;
+  color:var(--gr); opacity:.6; padding:14px 16px 10px;
+  border-bottom:1px solid rgba(74,222,128,.07);
+}
+.fhx-auth-btns { display:flex; flex-direction:column; gap:8px; padding:14px 16px; }
+.fhx-btn-login {
+  background:none; border:1px solid rgba(74,222,128,.25); color:var(--gr);
+  padding:9px; border-radius:7px; font-family:'Barlow',sans-serif; font-weight:700;
+  font-size:13px; letter-spacing:1px; text-transform:uppercase; cursor:pointer; transition:all .2s;
+}
+.fhx-btn-login:hover { border-color:var(--g); color:var(--g); }
+.fhx-btn-signup {
+  background:var(--g); color:var(--bg); border:none;
+  padding:9px; border-radius:7px; font-family:'Barlow',sans-serif; font-weight:800;
+  font-size:13px; letter-spacing:1px; text-transform:uppercase; cursor:pointer; transition:all .2s;
+}
+.fhx-btn-signup:hover { opacity:.88; }
+
+/* Latest posts feed */
+.latest-post-item {
+  display:flex; align-items:flex-start; gap:10px; padding:11px 16px;
+  border-bottom:1px solid rgba(74,222,128,.05); cursor:pointer; transition:background .15s;
+}
+.latest-post-item:last-child { border-bottom:none; }
+.latest-post-item:hover { background:var(--bge); }
+.lpi-av {
+  width:28px; height:28px; border-radius:6px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Bebas Neue',sans-serif; font-size:13px;
+}
+.lpi-info {}
+.lpi-title { font-size:12px; font-weight:700; color:var(--w); line-height:1.3; margin-bottom:3px; }
+.lpi-meta { font-size:10px; color:var(--gr); opacity:.45; }
+
+/* Categories in sidebar */
+.cat-item-home {
+  display:flex; align-items:center; gap:10px; padding:9px 16px;
+  cursor:pointer; transition:background .15s; border-left:3px solid transparent;
+}
+.cat-item-home:hover { background:var(--bge); }
+.cat-item-home.active { background:var(--bge); border-left-color:var(--g); }
+.cat-item-home .ce { font-size:15px; }
+.cat-item-home .cn { font-size:12px; font-weight:600; color:var(--gr); }
+.cat-item-home.active .cn { color:var(--g); }
+
+/* User bar when logged in */
+.fhx-user-bar { display:flex; align-items:center; gap:10px; padding:14px 16px; }
+.fhx-user-av {
+  width:36px; height:36px; border-radius:8px; display:flex; align-items:center;
+  justify-content:center; font-family:'Bebas Neue',sans-serif; font-size:16px;
+}
+.fhx-user-name { font-size:13px; font-weight:700; color:var(--gr); flex:1; }
+.fhx-signout {
+  background:none; border:1px solid rgba(248,113,113,.2); color:var(--red);
+  padding:5px 10px; border-radius:5px; font-family:'Barlow',sans-serif;
+  font-weight:700; font-size:11px; cursor:pointer; transition:all .2s;
+}
+.fhx-signout:hover { background:rgba(248,113,113,.1); }
+
+@media(max-width:1024px){ .forum-hx-layout { grid-template-columns:1fr; } .forum-hx-sidebar { display:none; } }
