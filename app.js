@@ -537,13 +537,12 @@ function injectForumDOM() {
         <button class="auth-tab-home" id="ftab-signup" onclick="switchFTab('signup')">Sign Up</button>
       </div>
       <div id="fauth-login">
-        <div class="fform-group"><label class="fform-label">Email</label><input type="email" class="fform-input" id="f-login-email" placeholder="your@email.com" /></div>
+        <div class="fform-group"><label class="fform-label">Username</label><input type="text" class="fform-input" id="f-login-username" placeholder="YourUsername" /></div>
         <div class="fform-group"><label class="fform-label">Password</label><input type="password" class="fform-input" id="f-login-pw" placeholder="••••••••" /></div>
         <button class="fform-submit" onclick="forumLogin()">Log In</button>
       </div>
       <div id="fauth-signup" style="display:none;">
         <div class="fform-group"><label class="fform-label">Username</label><input type="text" class="fform-input" id="f-signup-user" placeholder="YourUsername" /></div>
-        <div class="fform-group"><label class="fform-label">Email</label><input type="email" class="fform-input" id="f-signup-email" placeholder="your@email.com" /></div>
         <div class="fform-group"><label class="fform-label">Password</label><input type="password" class="fform-input" id="f-signup-pw" placeholder="Min 6 characters" /></div>
         <button class="fform-submit" onclick="forumSignup()">Create Account</button>
       </div>
@@ -618,22 +617,43 @@ function renderForumNav() {
 }
 
 async function forumLogin() {
-  const email = document.getElementById('f-login-email').value.trim();
+  const username = document.getElementById('f-login-username').value.trim();
   const pw = document.getElementById('f-login-pw').value;
-  const { error } = await sb.auth.signInWithPassword({ email, password: pw });
-  if (error) return fToast('❌ ' + error.message, true);
+  if (!username) return fToast('❌ Enter your username', true);
+  if (!pw) return fToast('❌ Enter your password', true);
+
+  // Look up the email stored for this username
+  const { data: profile, error: profileErr } = await sb
+    .from('profiles').select('id, username').eq('username', username).single();
+  if (profileErr || !profile) return fToast('❌ Username not found', true);
+
+  // Use username-based fake email convention
+  const fakeEmail = `${username.toLowerCase()}@glimzomc.local`;
+  const { error } = await sb.auth.signInWithPassword({ email: fakeEmail, password: pw });
+  if (error) return fToast('❌ Wrong password', true);
   closeFModal('fmodal-auth'); fToast('✓ Logged in!');
 }
 
 async function forumSignup() {
   const username = document.getElementById('f-signup-user').value.trim();
-  const email = document.getElementById('f-signup-email').value.trim();
   const pw = document.getElementById('f-signup-pw').value;
   if (!username || username.length < 3) return fToast('❌ Username must be 3+ characters', true);
-  const { data, error } = await sb.auth.signUp({ email, password: pw });
+  if (!pw || pw.length < 6) return fToast('❌ Password must be 6+ characters', true);
+  if (!/^[a-zA-Z0-9_]+$/.test(username)) return fToast('❌ Username can only contain letters, numbers, underscores', true);
+
+  // Check if username already taken
+  const { data: existing } = await sb.from('profiles').select('id').eq('username', username).single();
+  if (existing) return fToast('❌ Username already taken', true);
+
+  // Use username-based fake email so no real email needed
+  const fakeEmail = `${username.toLowerCase()}@glimzomc.local`;
+  const { data, error } = await sb.auth.signUp({ email: fakeEmail, password: pw });
   if (error) return fToast('❌ ' + error.message, true);
-  if (data.user) await sb.from('profiles').insert({ id: data.user.id, username, avatar_color: '#4ade80' });
-  closeFModal('fmodal-auth'); fToast('✓ Account created! Check your email to confirm.');
+  if (data.user) {
+    await sb.from('profiles').insert({ id: data.user.id, username, avatar_color: '#4ade80' });
+  }
+  closeFModal('fmodal-auth');
+  fToast('✓ Account created! You can now log in.');
 }
 
 async function forumSignout() {
