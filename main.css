@@ -1048,3 +1048,132 @@ footer{
   transition: background .15s;
 }
 .nav-dd-item:hover { background: rgba(248,113,113,.08); }
+
+/* ═══ PUBLIC COMMENTS ═══ */
+.public-comments-wrap {
+  margin-top: 16px;
+  border: 1px solid rgba(74,222,128,.1);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.public-comments-hd {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px;
+  background: rgba(74,222,128,.04);
+  border-bottom: 1px solid rgba(74,222,128,.08);
+}
+.public-comments-title {
+  font-size: 13px; font-weight: 800; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--gr);
+}
+.public-comments-count {
+  font-size: 12px; color: var(--gr); opacity: .4;
+}
+
+/* Individual comment */
+.pub-comment {
+  display: flex; gap: 14px;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(74,222,128,.06);
+  transition: background .15s;
+}
+.pub-comment:last-child { border-bottom: none; }
+.pub-comment:hover { background: rgba(74,222,128,.03); }
+.pub-comment-av {
+  width: 36px; height: 36px; border-radius: 8px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Bebas Neue', sans-serif; font-size: 16px;
+}
+.pub-comment-body { flex: 1; min-width: 0; }
+.pub-comment-meta {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 5px; flex-wrap: wrap;
+}
+.pub-comment-user {
+  font-size: 13px; font-weight: 700; color: var(--gr);
+}
+.pub-comment-admin-badge {
+  font-size: 9px; background: rgba(74,222,128,.1); color: var(--g);
+  padding: 1px 7px; border-radius: 100px; font-weight: 800;
+}
+.pub-comment-time {
+  font-size: 11px; color: var(--gr); opacity: .35; margin-left: auto;
+}
+.pub-comment-text {
+  font-size: 14px; color: var(--gr); opacity: .85; line-height: 1.6;
+  word-break: break-word;
+}
+
+/* Comment form */
+.pub-comment-form {
+  padding: 16px 20px;
+  border-top: 1px solid rgba(74,222,128,.08);
+  background: rgba(0,0,0,.2);
+  display: flex; gap: 12px; align-items: flex-start;
+}
+.pub-comment-form-av {
+  width: 36px; height: 36px; border-radius: 8px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Bebas Neue', sans-serif; font-size: 16px;
+}
+.pub-comment-form-inner { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.pub-comment-ta {
+  width: 100%; min-height: 72px; resize: vertical;
+  background: rgba(0,0,0,.4); border: 1px solid rgba(74,222,128,.15);
+  border-radius: 7px; padding: 10px 14px;
+  color: var(--w); font-family: 'Barlow', sans-serif; font-size: 14px;
+  outline: none; transition: border-color .2s;
+}
+.pub-comment-ta:focus { border-color: var(--g); }
+.pub-comment-ta::placeholder { color: rgba(134,239,172,.25); }
+.pub-comment-submit {
+  align-self: flex-end;
+  background: var(--g); color: #050d08; border: none;
+  padding: 9px 22px; border-radius: 6px;
+  font-family: 'Barlow', sans-serif; font-weight: 800; font-size: 13px;
+  cursor: pointer; transition: all .2s;
+}
+.pub-comment-submit:hover { opacity: .88; transform: translateY(-1px); }
+
+/* Login prompt inside comment box */
+.pub-comment-login-prompt {
+  padding: 18px 20px;
+  border-top: 1px solid rgba(74,222,128,.08);
+  font-size: 13px; color: var(--gr); opacity: .6; text-align: center;
+}
+.pub-comment-login-prompt a {
+  color: var(--g); cursor: pointer; font-weight: 700;
+}
+
+/* ═══ PUBLIC COMMENTS — SIDEBAR OVERRIDES ═══ */
+#fhx-replies-card .pub-comment-form {
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+}
+#fhx-replies-card .pub-comment-form-av {
+  display: none; /* hide avatar in narrow sidebar */
+}
+#fhx-replies-card .pub-comment-form-inner {
+  width: 100%;
+}
+#fhx-replies-card .pub-comment-ta {
+  width: 100%;
+  min-height: 64px;
+  font-size: 13px;
+}
+#fhx-replies-card .pub-comment-submit {
+  width: 100%;
+  padding: 9px;
+  font-size: 13px;
+}
+#fhx-replies-card .pub-comment {
+  padding: 12px 14px;
+}
+#fhx-replies-card .pub-comment-text {
+  font-size: 13px;
+}
+#fhx-replies-card .pub-comment-login-prompt {
+  padding: 14px;
+  font-size: 12px;
+}
