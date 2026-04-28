@@ -28,7 +28,8 @@ body::before{
 
 /* ── ROUTING ── */
 .page{ display:none; }
-.page.active{ display:block; }
+.page.active{ display:block; animation:pageFadeIn .35s ease both; }
+@keyframes pageFadeIn{ from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);} }
 
 /* ══════════════════════════════════
    NAV
@@ -458,6 +459,38 @@ footer{
 @keyframes pulse{ 0%,100%{opacity:1;transform:scale(1);}50%{opacity:.5;transform:scale(.85);} }
 @keyframes fadeInDown{ from{opacity:0;transform:translateY(-16px);}to{opacity:1;transform:translateY(0);} }
 @keyframes fadeInUp{ from{opacity:0;transform:translateY(24px);}to{opacity:1;transform:translateY(0);} }
+
+/* ── NAV SCROLL SHRINK ── */
+nav{ transition:padding .3s, box-shadow .3s; }
+nav.scrolled{ padding-top:10px; padding-bottom:10px; box-shadow:0 4px 32px rgba(0,0,0,.5); }
+
+/* ── SECTION REVEAL (JS adds .reveal-visible) ── */
+.reveal{
+  opacity:0; transform:translateY(28px);
+  transition:opacity .6s ease, transform .6s ease;
+}
+.reveal.reveal-visible{ opacity:1; transform:translateY(0); }
+
+/* ── CARD HOVER LIFT ── */
+.gmode-card:hover{ transform:translateY(-6px) scale(1.01); }
+.gm-prev-card:hover{ transform:translateY(-4px); }
+.admin-post-card:hover{ transform:translateY(-3px); }
+.fhx-card{ transition:box-shadow .25s; }
+.fhx-card:hover{ box-shadow:0 8px 40px rgba(74,222,128,.08); }
+
+/* ── HERO ORB FLOAT ── */
+.hero-glow-orb{ animation:orbFloat 8s ease-in-out infinite; }
+.orb2{ animation-delay:-4s; animation-duration:10s; }
+@keyframes orbFloat{
+  0%,100%{ transform:translateY(0) scale(1); }
+  50%{ transform:translateY(-18px) scale(1.04); }
+}
+
+/* ── BUTTON PRESS ── */
+.btn-primary:active{ transform:scale(.97); }
+.btn-discord:active{ transform:scale(.97); }
+.btn-auth-submit:active{ transform:scale(.97); }
+.pub-comment-submit:active{ transform:scale(.97); }
 
 /* ══════════════════════════════════
    RESPONSIVE
