@@ -818,24 +818,25 @@ async function loadPublicComments() {
   if (countEl) countEl.textContent = comments.length + ' comment' + (comments.length !== 1 ? 's' : '');
 
   if (!comments.length) {
-    list.innerHTML = `<div style="padding:16px;font-size:12px;color:var(--gr);opacity:.4;">No comments yet. Be the first!</div>`;
+    list.innerHTML = `<div style="border-top:1px solid rgba(74,222,128,.08);padding:14px 14px;font-size:12px;color:var(--gr);opacity:.4;">No comments yet. Be the first!</div>`;
   } else {
-    list.innerHTML = comments.map(c => {
-      const color = c.profiles?.avatar_color || '#4ade80';
-      const init = c.profiles?.username?.[0]?.toUpperCase() || '?';
-      const isAdmin = c.profiles?.role === 'admin';
-      return `<div class="pub-comment">
-        <div class="pub-comment-av" style="background:${color}22;color:${color};">${init}</div>
-        <div class="pub-comment-body">
-          <div class="pub-comment-meta">
-            <span class="pub-comment-user" style="color:${color};">@${c.profiles?.username || 'Unknown'}</span>
-            ${isAdmin ? '<span class="pub-comment-admin-badge">[ADMIN]</span>' : ''}
-            <span class="pub-comment-time">${fTimeAgo(c.created_at)}</span>
+    list.innerHTML = `<div style="border-top:1px solid rgba(74,222,128,.08);">` +
+      comments.map(c => {
+        const color = c.profiles?.avatar_color || '#4ade80';
+        const init = c.profiles?.username?.[0]?.toUpperCase() || '?';
+        const isAdmin = c.profiles?.role === 'admin';
+        return `<div class="pub-comment">
+          <div class="pub-comment-av" style="background:${color}22;color:${color};">${init}</div>
+          <div class="pub-comment-body">
+            <div class="pub-comment-meta">
+              <span class="pub-comment-user" style="color:${color};">@${c.profiles?.username || 'Unknown'}</span>
+              ${isAdmin ? '<span class="pub-comment-admin-badge">[ADMIN]</span>' : ''}
+              <span class="pub-comment-time">${fTimeAgo(c.created_at)}</span>
+            </div>
+            <div class="pub-comment-text">${c.content}</div>
           </div>
-          <div class="pub-comment-text">${c.content}</div>
-        </div>
-      </div>`;
-    }).join('');
+        </div>`;
+      }).join('') + `</div>`;
   }
 
   renderPublicCommentForm();
