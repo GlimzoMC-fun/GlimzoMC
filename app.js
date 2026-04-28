@@ -615,10 +615,26 @@ function renderForumNav() {
   if (navRight) {
     if (fUser && fProfile) {
       const init = fProfile.username[0].toUpperCase();
+      const isAdmin = fProfile.role === 'admin';
       navRight.innerHTML = `<div class="nav-user-bar">
-        <div class="nav-user-av" style="background:${fProfile.avatar_color}22;color:${fProfile.avatar_color};">${init}</div>
-        <span class="nav-user-name">${fProfile.username}</span>
-        <button class="nav-signout" onclick="forumSignout()">Sign Out</button>
+        <div class="nav-user-btn" onclick="toggleNavDropdown()">
+          <div class="nav-user-av" style="background:${fProfile.avatar_color}22;color:${fProfile.avatar_color};">${init}</div>
+          <span class="nav-user-name">${fProfile.username}${isAdmin ? ' <span style="font-size:10px;color:var(--g);font-weight:800;">[ADMIN]</span>' : ''}</span>
+          <span class="nav-user-chevron">▾</span>
+        </div>
+        <div class="nav-dropdown" id="nav-dropdown">
+          <div class="nav-dropdown-user">
+            <div class="nav-dd-av" style="background:${fProfile.avatar_color}22;color:${fProfile.avatar_color};">${init}</div>
+            <div>
+              <div class="nav-dd-name">${fProfile.username}</div>
+              <div class="nav-dd-role">${isAdmin ? '🛡️ Staff' : '👤 Member'}</div>
+            </div>
+          </div>
+          <div class="nav-dropdown-divider"></div>
+          <button class="nav-dd-item" onclick="forumSignout()">
+            <span>⬡</span> Sign Out
+          </button>
+        </div>
       </div>`;
     } else {
       navRight.innerHTML = `
@@ -1147,6 +1163,20 @@ async function doRegisterPage() {
   // Go straight to home with username showing in nav
   navigate('home');
 }
+
+function toggleNavDropdown() {
+  const dd = document.getElementById('nav-dropdown');
+  if (!dd) return;
+  dd.classList.toggle('open');
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+  const bar = document.querySelector('.nav-user-bar');
+  if (bar && !bar.contains(e.target)) {
+    document.getElementById('nav-dropdown')?.classList.remove('open');
+  }
+});
 
 // Re-wire dynamically rendered nav links (called after renderForumNav injects new elements)
 function rewireNavLinks() {
