@@ -147,12 +147,9 @@ function navigate(page, pushHistory = true) {
   }
 
   if (page === 'login') {
-    // clear fields and errors
-    const uEl = document.getElementById('login-username');
+    const eEmail = document.getElementById('login-email');
     const pEl = document.getElementById('login-pw');
     const eEl = document.getElementById('login-error');
-    if (uEl) uEl.value = '';  // kept for back-compat
-    const eEmail = document.getElementById('login-username');
     if (eEmail) eEmail.value = '';
     if (pEl) pEl.value = '';
     if (eEl) { eEl.textContent = ''; eEl.classList.remove('show'); }
@@ -574,6 +571,7 @@ function injectForumDOM() {
       </div>
       <div id="fauth-signup" style="display:none;">
         <div class="fform-group"><label class="fform-label">Username</label><input type="text" class="fform-input" id="f-signup-user" placeholder="YourUsername" /></div>
+        <div class="fform-group"><label class="fform-label">Email</label><input type="email" class="fform-input" id="f-signup-email" placeholder="you@example.com" /></div>
         <div class="fform-group"><label class="fform-label">Password</label><input type="password" class="fform-input" id="f-signup-pw" placeholder="Min 6 characters" /></div>
         <button class="fform-submit" onclick="forumSignup()">Create Account</button>
       </div>
@@ -595,9 +593,8 @@ async function initForumAuth() {
   const { data: { session } } = await sb.auth.getSession();
   if (session?.user) await setForumUser(session.user);
   sb.auth.onAuthStateChange(async (event, session) => {
-    // Skip SIGNED_IN on fresh signUp — doRegisterPage handles it manually
     if (event === 'SIGNED_IN' && session?.user) {
-      // Only auto-set if we don't already have the user loaded
+      // Only auto-set if we don't already have the user loaded (avoids race on register)
       if (!fUser) await setForumUser(session.user);
     } else if (!session) {
       fUser = null; fProfile = null; renderForumNav();
@@ -674,38 +671,57 @@ async function forumLogin() {
   if (!username) return fToast('❌ Enter your username', true);
   if (!pw) return fToast('❌ Enter your password', true);
 
-  // Look up the email stored for this username
+  // Look up real email from profiles
   const { data: profile, error: profileErr } = await sb
-    .from('profiles').select('id, username').eq('username', username).single();
+    .from('profiles').select('id, email').eq('username', username).single();
   if (profileErr || !profile) return fToast('❌ Username not found', true);
+  if (!profile.email) return fToast('❌ No email on file — please use the main login page', true);
 
-  // Use username-based fake email convention
-  const fakeEmail = `${username.toLowerCase()}@glimzomc.local`;
-  const { error } = await sb.auth.signInWithPassword({ email: fakeEmail, password: pw });
+  const { data, error } = await sb.auth.signInWithPassword({ email: profile.email, password: pw });
+
+  // Log attempt
+  await sb.from('login_logs').insert({
+    email: profile.email,
+    success: !error,
+    error_message: error ? error.message : null,
+    user_id: data?.user?.id || null,
+    event_type: 'login',
+    attempted_at: new Date().toISOString(),
+  }).then(() => {});
+
   if (error) return fToast('❌ Wrong password', true);
   closeFModal('fmodal-auth'); fToast('✓ Logged in!');
 }
 
 async function forumSignup() {
   const username = document.getElementById('f-signup-user').value.trim();
+  const email = document.getElementById('f-signup-email')?.value.trim();
   const pw = document.getElementById('f-signup-pw').value;
   if (!username || username.length < 3) return fToast('❌ Username must be 3+ characters', true);
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fToast('❌ Enter a valid email', true);
   if (!pw || pw.length < 6) return fToast('❌ Password must be 6+ characters', true);
-  if (!/^[a-zA-Z0-9_]+$/.test(username)) return fToast('❌ Username can only contain letters, numbers, underscores', true);
+  if (!/^[a-zA-Z0-9_]+$/.test(username)) return fToast('❌ Username: letters, numbers, underscores only', true);
 
-  // Check if username already taken
   const { data: existing } = await sb.from('profiles').select('id').eq('username', username).single();
   if (existing) return fToast('❌ Username already taken', true);
 
-  // Use username-based fake email so no real email needed
-  const fakeEmail = `${username.toLowerCase()}@glimzomc.local`;
-  const { data, error } = await sb.auth.signUp({ email: fakeEmail, password: pw });
+  const { data, error } = await sb.auth.signUp({ email, password: pw });
+
+  await sb.from('login_logs').insert({
+    email,
+    success: !error,
+    error_message: error ? error.message : null,
+    user_id: data?.user?.id || null,
+    event_type: 'register',
+    attempted_at: new Date().toISOString(),
+  }).then(() => {});
+
   if (error) return fToast('❌ ' + error.message, true);
   if (data.user) {
-    await sb.from('profiles').insert({ id: data.user.id, username, avatar_color: '#4ade80' });
+    await sb.from('profiles').insert({ id: data.user.id, username, email, avatar_color: '#4ade80' });
   }
   closeFModal('fmodal-auth');
-  fToast('✓ Account created! You can now log in.');
+  fToast('✓ Account created! You are now logged in.');
 }
 
 async function forumSignout() {
@@ -1059,21 +1075,25 @@ function hideAuthError(id) {
 // ── LOGIN PAGE ────────────────────────────────────────
 async function doLoginPage() {
   if (!sb) return showAuthError('login-error', 'Still connecting, please wait a moment.');
-  const username = document.getElementById('login-username')?.value.trim();
+  const email = document.getElementById('login-email')?.value.trim();
   const pw = document.getElementById('login-pw')?.value;
   hideAuthError('login-error');
-  if (!username) return showAuthError('login-error', 'Please enter your username.');
+  if (!email) return showAuthError('login-error', 'Please enter your email.');
   if (!pw) return showAuthError('login-error', 'Please enter your password.');
 
-  // Look up profile to confirm username exists
-  const { data: profile } = await sb.from('profiles').select('id').eq('username', username).single();
-  if (!profile) return showAuthError('login-error', 'Username not found. Check your spelling or register a new account.');
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pw });
 
-  // Use username-based fake email
-  const fakeEmail = `${username.toLowerCase()}@glimzomc.local`;
-  const { data, error } = await sb.auth.signInWithPassword({ email: fakeEmail, password: pw });
+  // Log every attempt
+  await sb.from('login_logs').insert({
+    email,
+    success: !error,
+    error_message: error ? error.message : null,
+    user_id: data?.user?.id || null,
+    event_type: 'login',
+    attempted_at: new Date().toISOString(),
+  }).then(() => {});  // fire and forget, don't block on failure
 
-  if (error) return showAuthError('login-error', 'Incorrect password. Please try again.');
+  if (error) return showAuthError('login-error', 'Incorrect email or password. Please try again.');
 
   if (data.user) await setForumUser(data.user);
   navigate('home');
@@ -1130,6 +1150,7 @@ function checkRegPwStrength() {
 async function doRegisterPage() {
   if (!sb) return showAuthError('reg-error', 'Still connecting, please wait a moment and try again.');
   const username = document.getElementById('reg-username')?.value.trim();
+  const email = document.getElementById('reg-email')?.value.trim();
   const pw = document.getElementById('reg-pw')?.value;
   const pw2 = document.getElementById('reg-pw2')?.value;
   const terms = document.getElementById('reg-terms')?.checked;
@@ -1139,6 +1160,7 @@ async function doRegisterPage() {
 
   if (!username) return showAuthError('reg-error', 'Please enter a username.');
   if (!/^[a-zA-Z0-9_]{3,20}$/.test(username)) return showAuthError('reg-error', 'Username must be 3-20 characters, letters/numbers/underscores only.');
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showAuthError('reg-error', 'Please enter a valid email address.');
   if (!pw || pw.length < 6) return showAuthError('reg-error', 'Password must be at least 6 characters.');
   if (pw !== pw2) return showAuthError('reg-error', 'Passwords do not match.');
   if (!terms) return showAuthError('reg-error', 'You must agree to the terms and privacy policy.');
@@ -1146,7 +1168,7 @@ async function doRegisterPage() {
   const btn = document.getElementById('reg-btn');
   btn.disabled = true; btn.textContent = 'Checking username...';
 
-  // Verify username is not taken
+  // Verify username not taken
   const { data: existing } = await sb.from('profiles').select('id').eq('username', username).single();
   if (existing) {
     btn.disabled = false; btn.textContent = 'Register';
@@ -1154,19 +1176,27 @@ async function doRegisterPage() {
   }
 
   btn.textContent = 'Creating account...';
+  const { data, error } = await sb.auth.signUp({ email, password: pw });
 
-  // Use fake email so no real email is needed
-  const fakeEmail = `${username.toLowerCase()}@glimzomc.local`;
-  const { data, error } = await sb.auth.signUp({ email: fakeEmail, password: pw });
+  // Log the registration attempt
+  await sb.from('login_logs').insert({
+    email,
+    success: !error,
+    error_message: error ? error.message : null,
+    user_id: data?.user?.id || null,
+    event_type: 'register',
+    attempted_at: new Date().toISOString(),
+  }).then(() => {});
 
   if (error) { btn.disabled = false; btn.textContent = 'Register'; return showAuthError('reg-error', error.message); }
 
   if (data.user) {
-    await sb.from('profiles').insert({ id: data.user.id, username, avatar_color: '#4ade80' });
+    // Insert profile first, then set user so nav renders with correct username
+    await sb.from('profiles').insert({ id: data.user.id, username, email, avatar_color: '#4ade80' });
     await setForumUser(data.user);
   }
 
-  // Go straight to home with username showing in nav
+  // Go straight to home — username shows in nav immediately
   navigate('home');
 }
 
