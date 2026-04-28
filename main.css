@@ -57,13 +57,14 @@ nav{
 .nav-links a.active{ color:var(--g); border-bottom-color:var(--g); }
 .nav-right{ display:flex; align-items:center; gap:10px; justify-content:flex-end; }
 .btn-nav-login{
-  background:none; color:var(--gr); border:1px solid rgba(74,222,128,.25);
-  padding:8px 20px; border-radius:7px;
-  font-family:'Barlow',sans-serif; font-weight:700; font-size:13px;
+  background:var(--g); color:var(--bg); border:none;
+  padding:9px 20px; border-radius:7px;
+  font-family:'Barlow',sans-serif; font-weight:800; font-size:13px;
   letter-spacing:1px; text-transform:uppercase; cursor:pointer;
   transition:all .2s; text-decoration:none; display:inline-block;
+  box-shadow:0 4px 16px rgba(74,222,128,.25);
 }
-.btn-nav-login:hover{ border-color:var(--g); color:var(--g); }
+.btn-nav-login:hover{ opacity:.88; transform:translateY(-1px); }
 .btn-nav-register{
   background:var(--g); color:var(--bg); border:none;
   padding:9px 20px; border-radius:7px;
