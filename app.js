@@ -592,9 +592,14 @@ function injectForumDOM() {
 async function initForumAuth() {
   const { data: { session } } = await sb.auth.getSession();
   if (session?.user) await setForumUser(session.user);
-  sb.auth.onAuthStateChange(async (_, session) => {
-    if (session?.user) await setForumUser(session.user);
-    else { fUser=null; fProfile=null; renderForumNav(); }
+  sb.auth.onAuthStateChange(async (event, session) => {
+    // Skip SIGNED_IN on fresh signUp — doRegisterPage handles it manually
+    if (event === 'SIGNED_IN' && session?.user) {
+      // Only auto-set if we don't already have the user loaded
+      if (!fUser) await setForumUser(session.user);
+    } else if (!session) {
+      fUser = null; fProfile = null; renderForumNav();
+    }
   });
 }
 
@@ -1035,7 +1040,7 @@ function hideAuthError(id) {
 
 // ── LOGIN PAGE ────────────────────────────────────────
 async function doLoginPage() {
-  if (!sb) return;
+  if (!sb) return showAuthError('login-error', 'Still connecting, please wait a moment.');
   const username = document.getElementById('login-username')?.value.trim();
   const pw = document.getElementById('login-pw')?.value;
   hideAuthError('login-error');
@@ -1046,8 +1051,10 @@ async function doLoginPage() {
   if (!profile) return showAuthError('login-error', 'Username not found. Check your spelling or register a new account.');
   if (!profile.email) return showAuthError('login-error', 'No email on file for this account. Please contact support.');
 
-  const { error } = await sb.auth.signInWithPassword({ email: profile.email, password: pw });
+  const { data, error } = await sb.auth.signInWithPassword({ email: profile.email, password: pw });
   if (error) return showAuthError('login-error', 'Incorrect password. Please try again.');
+
+  if (data.user) await setForumUser(data.user);
   navigate('home');
 }
 
@@ -1120,7 +1127,7 @@ async function doRegisterPage() {
   const btn = document.getElementById('reg-btn');
   btn.disabled = true; btn.textContent = 'Checking username...';
 
-  // Always verify username availability at submit time
+  // Verify username is not taken
   const { data: existing } = await sb.from('profiles').select('id').eq('username', username).single();
   if (existing) {
     btn.disabled = false; btn.textContent = 'Register';
@@ -1132,12 +1139,13 @@ async function doRegisterPage() {
   if (error) { btn.disabled = false; btn.textContent = 'Register'; return showAuthError('reg-error', error.message); }
 
   if (data.user) {
+    // Insert profile first, then set the user so nav renders correctly
     await sb.from('profiles').insert({ id: data.user.id, username, email, avatar_color: '#4ade80' });
+    await setForumUser(data.user);
   }
 
-  const sEl = document.getElementById('reg-success');
-  if (sEl) { sEl.textContent = '✓ Account created! Redirecting to login...'; sEl.classList.add('show'); }
-  setTimeout(() => navigate('login'), 1800);
+  // Go straight to home with username showing in nav
+  navigate('home');
 }
 
 // Re-wire dynamically rendered nav links (called after renderForumNav injects new elements)
