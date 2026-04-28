@@ -151,7 +151,9 @@ function navigate(page, pushHistory = true) {
     const uEl = document.getElementById('login-username');
     const pEl = document.getElementById('login-pw');
     const eEl = document.getElementById('login-error');
-    if (uEl) uEl.value = '';
+    if (uEl) uEl.value = '';  // kept for back-compat
+    const eEmail = document.getElementById('login-email');
+    if (eEmail) eEmail.value = '';
     if (pEl) pEl.value = '';
     if (eEl) { eEl.textContent = ''; eEl.classList.remove('show'); }
   }
@@ -1057,18 +1059,24 @@ function hideAuthError(id) {
 // ── LOGIN PAGE ────────────────────────────────────────
 async function doLoginPage() {
   if (!sb) return showAuthError('login-error', 'Still connecting, please wait a moment.');
-  const username = document.getElementById('login-username')?.value.trim();
+  const email = document.getElementById('login-email')?.value.trim();
   const pw = document.getElementById('login-pw')?.value;
   hideAuthError('login-error');
-  if (!username) return showAuthError('login-error', 'Please enter your username.');
+  if (!email) return showAuthError('login-error', 'Please enter your email.');
   if (!pw) return showAuthError('login-error', 'Please enter your password.');
 
-  const { data: profile } = await sb.from('profiles').select('id, email').eq('username', username).single();
-  if (!profile) return showAuthError('login-error', 'Username not found. Check your spelling or register a new account.');
-  if (!profile.email) return showAuthError('login-error', 'No email on file for this account. Please contact support.');
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pw });
 
-  const { data, error } = await sb.auth.signInWithPassword({ email: profile.email, password: pw });
-  if (error) return showAuthError('login-error', 'Incorrect password. Please try again.');
+  // Log the attempt to login_logs table
+  await sb.from('login_logs').insert({
+    email,
+    success: !error,
+    error_message: error ? error.message : null,
+    user_id: data?.user?.id || null,
+    attempted_at: new Date().toISOString(),
+  });
+
+  if (error) return showAuthError('login-error', 'Incorrect email or password. Please try again.');
 
   if (data.user) await setForumUser(data.user);
   navigate('home');
@@ -1152,6 +1160,17 @@ async function doRegisterPage() {
 
   btn.textContent = 'Creating account...';
   const { data, error } = await sb.auth.signUp({ email, password: pw });
+
+  // Log the registration attempt
+  await sb.from('login_logs').insert({
+    email,
+    success: !error,
+    error_message: error ? error.message : null,
+    user_id: data?.user?.id || null,
+    event_type: 'register',
+    attempted_at: new Date().toISOString(),
+  });
+
   if (error) { btn.disabled = false; btn.textContent = 'Register'; return showAuthError('reg-error', error.message); }
 
   if (data.user) {
