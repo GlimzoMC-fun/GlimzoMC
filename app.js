@@ -1170,9 +1170,5 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-(function() {
-  const s = document.createElement('script');
-  s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
-  s.onload = initSupabase;
-  document.head.appendChild(s);
-})();
+// Supabase is loaded via <script> in index.html head — init directly
+initSupabase();
