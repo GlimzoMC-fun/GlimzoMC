@@ -1301,3 +1301,31 @@ document.addEventListener('keydown', (e) => {
 
 // Supabase is loaded via <script> in index.html head — init directly
 initSupabase();
+
+// ═══════════════════════════════════════════════════════
+//  ANIMATIONS
+// ═══════════════════════════════════════════════════════
+
+// Nav shrink on scroll
+window.addEventListener('scroll', () => {
+  document.querySelector('nav').classList.toggle('scrolled', window.scrollY > 40);
+}, { passive: true });
+
+// Section scroll reveal
+(function initReveal() {
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('reveal-visible');
+        obs.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll(
+    '.feat-item, .why-item, .fhx-card, .announce-card, .event-card, .changelog-item, .footer-col, .footer-brand'
+  ).forEach(el => {
+    el.classList.add('reveal');
+    obs.observe(el);
+  });
+})();
