@@ -327,7 +327,7 @@ function showGmList() {
   window.scrollTo({ top: 0, behavior: 'instant' });
 }
 
-document.getElementById('back-btn').addEventListener('click', showGmList);
+document.getElementById('back-btn')?.addEventListener('click', showGmList);
 
 // ═══════════════════════════════════════════════════════
 //  COPY IP
@@ -355,9 +355,9 @@ function closeSearch() {
   document.getElementById('search-overlay').classList.remove('active');
 }
 
-document.getElementById('navSearchInput').addEventListener('click', openSearch);
-document.getElementById('searchClose').addEventListener('click', closeSearch);
-document.getElementById('search-overlay').addEventListener('click', (e) => {
+document.getElementById('navSearchInput')?.addEventListener('click', openSearch);
+document.getElementById('searchClose')?.addEventListener('click', closeSearch);
+document.getElementById('search-overlay')?.addEventListener('click', (e) => {
   if (e.target === document.getElementById('search-overlay')) closeSearch();
 });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSearch(); });
