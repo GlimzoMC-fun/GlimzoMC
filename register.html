@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GlimzoMC — Register</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --g:#4ade80; --gd:#16a34a; --bg:#050d08; --bgc:#0a1a0f;
+      --bge:#0f2318; --w:#f0fdf4; --gr:#86efac;
+    }
+    *{ margin:0; padding:0; box-sizing:border-box; }
+    body{
+      background:var(--bg); color:var(--w);
+      font-family:'Barlow',sans-serif; min-height:100vh;
+      display:flex; flex-direction:column;
+    }
+    .page-bg{
+      position:fixed; inset:0; z-index:0;
+      background:radial-gradient(ellipse 80% 60% at 50% 0%, rgba(22,163,74,.13) 0%, transparent 60%), var(--bg);
+    }
+    .page-grid{
+      position:fixed; inset:0; z-index:0; pointer-events:none;
+      background-image:
+        linear-gradient(rgba(74,222,128,.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(74,222,128,.03) 1px, transparent 1px);
+      background-size:60px 60px;
+    }
+    nav{
+      position:relative; z-index:10;
+      display:flex; align-items:center; justify-content:space-between;
+      padding:18px 48px;
+      background:rgba(5,13,8,.92); backdrop-filter:blur(20px);
+      border-bottom:1px solid rgba(74,222,128,.1);
+    }
+    .nav-logo{ font-family:'Bebas Neue',sans-serif; font-size:26px; letter-spacing:3px; color:var(--g); text-decoration:none; text-shadow:0 0 20px rgba(74,222,128,.4); }
+    .nav-links{ display:flex; gap:28px; list-style:none; }
+    .nav-links a{ color:var(--gr); font-size:13px; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; text-decoration:none; opacity:.7; transition:opacity .2s; }
+    .nav-links a:hover{ opacity:1; color:var(--g); }
+
+    .auth-wrap{
+      position:relative; z-index:1; flex:1;
+      display:flex; align-items:flex-start; justify-content:center;
+      padding:60px 24px 80px;
+    }
+    .auth-box{ width:100%; max-width:720px; }
+    .auth-page-title{ font-family:'Bebas Neue',sans-serif; font-size:clamp(36px,5vw,56px); letter-spacing:3px; color:var(--w); margin-bottom:24px; }
+    .auth-page-title span{ color:var(--g); }
+
+    .auth-frame{
+      background:rgba(5,13,8,.95); border:1px solid rgba(74,222,128,.25);
+      border-radius:4px; position:relative;
+      box-shadow:0 0 0 1px rgba(74,222,128,.08), 0 20px 60px rgba(0,0,0,.6);
+    }
+    .corner{ position:absolute; width:10px; height:10px; }
+    .corner.tl{ top:-1px; left:-1px; border-top:2px solid var(--g); border-left:2px solid var(--g); }
+    .corner.tr{ top:-1px; right:-1px; border-top:2px solid var(--g); border-right:2px solid var(--g); }
+    .corner.bl{ bottom:-1px; left:-1px; border-bottom:2px solid var(--g); border-left:2px solid var(--g); }
+    .corner.br{ bottom:-1px; right:-1px; border-bottom:2px solid var(--g); border-right:2px solid var(--g); }
+
+    .auth-rows{ background:rgba(0,0,0,.35); border-bottom:1px solid rgba(74,222,128,.1); }
+    .auth-row{ display:grid; grid-template-columns:220px 1fr; border-bottom:1px solid rgba(74,222,128,.06); }
+    .auth-row:last-child{ border-bottom:none; }
+    .auth-row-label{
+      padding:22px 24px; text-align:right;
+      font-size:14px; font-weight:600; color:var(--gr); opacity:.8;
+      display:flex; flex-direction:column; align-items:flex-end; justify-content:center; gap:4px;
+      background:rgba(0,0,0,.2); border-right:1px solid rgba(74,222,128,.08);
+    }
+    .auth-row-label span{ font-size:11px; font-weight:500; opacity:.45; letter-spacing:.5px; }
+    .auth-row-input{ padding:18px 20px; display:flex; flex-direction:column; gap:8px; }
+    .auth-input{
+      width:100%; background:rgba(0,0,0,.5); border:1px solid rgba(74,222,128,.15);
+      border-radius:4px; padding:11px 14px; color:var(--w);
+      font-family:'Barlow',sans-serif; font-size:14px; outline:none; transition:border-color .2s;
+    }
+    .auth-input:focus{ border-color:var(--g); box-shadow:0 0 0 2px rgba(74,222,128,.08); }
+    .auth-input::placeholder{ color:rgba(134,239,172,.25); }
+    .auth-input.error{ border-color:#f87171; }
+    .pw-wrap{ position:relative; }
+    .pw-wrap .auth-input{ padding-right:72px; }
+    .pw-show{
+      position:absolute; right:10px; top:50%; transform:translateY(-50%);
+      background:none; border:1px solid rgba(74,222,128,.2); border-radius:3px;
+      color:var(--gr); font-size:11px; font-weight:700; letter-spacing:1px;
+      padding:4px 9px; cursor:pointer; transition:all .2s;
+    }
+    .pw-show:hover{ border-color:var(--g); color:var(--g); }
+    .auth-hint{ font-size:12px; color:var(--gr); opacity:.5; line-height:1.5; }
+    .auth-hint.err{ color:#fca5a5; opacity:.85; }
+    .auth-checkbox-row{ display:flex; align-items:flex-start; gap:10px; font-size:13px; color:var(--gr); opacity:.75; line-height:1.5; }
+    .auth-checkbox{ width:15px; height:15px; accent-color:var(--g); cursor:pointer; margin-top:2px; flex-shrink:0; }
+    .auth-checkbox-row a{ color:var(--g); text-decoration:none; }
+
+    /* Password strength bar */
+    .pw-strength{ height:3px; border-radius:2px; margin-top:6px; background:rgba(74,222,128,.1); overflow:hidden; }
+    .pw-strength-fill{ height:100%; width:0%; transition:width .3s, background .3s; border-radius:2px; }
+
+    .auth-error{ display:none; padding:12px 20px; margin:12px 20px 0; background:rgba(248,113,113,.08); border:1px solid rgba(248,113,113,.25); border-radius:5px; color:#fca5a5; font-size:13px; font-weight:600; }
+    .auth-error.show{ display:block; }
+    .auth-success{ display:none; padding:12px 20px; margin:12px 20px 0; background:rgba(74,222,128,.08); border:1px solid rgba(74,222,128,.25); border-radius:5px; color:var(--g); font-size:13px; font-weight:600; }
+    .auth-success.show{ display:block; }
+
+    .auth-bottom{ padding:20px 24px; display:flex; align-items:center; gap:20px; flex-wrap:wrap; }
+    .btn-auth-submit{
+      background:var(--g); color:#050d08; border:none; padding:12px 36px; border-radius:5px;
+      font-family:'Barlow',sans-serif; font-weight:800; font-size:14px; letter-spacing:1px;
+      text-transform:uppercase; cursor:pointer; transition:all .2s;
+      box-shadow:0 4px 20px rgba(74,222,128,.3);
+    }
+    .btn-auth-submit:hover{ opacity:.88; transform:translateY(-1px); }
+    .btn-auth-submit:disabled{ opacity:.4; cursor:not-allowed; transform:none; }
+    .auth-alt{ font-size:13px; color:var(--gr); opacity:.6; }
+    .auth-alt a{ color:var(--g); text-decoration:none; font-weight:700; }
+    .auth-breadcrumb{ padding:16px 0; font-size:13px; color:var(--gr); opacity:.4; }
+    .auth-breadcrumb a{ color:var(--g); text-decoration:none; opacity:.8; }
+
+    @media(max-width:600px){
+      nav{ padding:14px 20px; }
+      .nav-links{ display:none; }
+      .auth-row{ grid-template-columns:1fr; }
+      .auth-row-label{ text-align:left; border-right:none; border-bottom:1px solid rgba(74,222,128,.06); padding:14px 20px 8px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-bg"></div>
+<div class="page-grid"></div>
+
+<nav>
+  <a class="nav-logo" href="index.html">GlimzoMC</a>
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li>
+    <li><a href="index.html">Gamemodes</a></li>
+    <li><a href="index.html">Community Portal</a></li>
+  </ul>
+</nav>
+
+<div class="auth-wrap">
+  <div class="auth-box">
+    <div class="auth-page-title"><span>Register</span></div>
+
+    <div class="auth-frame">
+      <div class="corner tl"></div>
+      <div class="corner tr"></div>
+      <div class="corner bl"></div>
+      <div class="corner br"></div>
+
+      <div class="auth-rows">
+
+        <!-- Username -->
+        <div class="auth-row">
+          <div class="auth-row-label">
+            Username:
+            <span>Required</span>
+          </div>
+          <div class="auth-row-input">
+            <input type="text" class="auth-input" id="reg-username" placeholder="" autocomplete="username" oninput="checkUsername()" />
+            <div class="auth-hint" id="username-hint">This is the name shown with your posts. Letters, numbers and underscores only.</div>
+          </div>
+        </div>
+
+        <!-- Password -->
+        <div class="auth-row">
+          <div class="auth-row-label">
+            Password:
+            <span>Required</span>
+          </div>
+          <div class="auth-row-input">
+            <div class="pw-wrap">
+              <input type="password" class="auth-input" id="reg-pw" placeholder="" autocomplete="new-password" oninput="checkPwStrength()" />
+              <button class="pw-show" onclick="togglePw('reg-pw', this)">Show</button>
+            </div>
+            <div class="pw-strength"><div class="pw-strength-fill" id="pw-strength-fill"></div></div>
+            <div class="auth-hint" id="pw-hint">Minimum 6 characters.</div>
+          </div>
+        </div>
+
+        <!-- Confirm Password -->
+        <div class="auth-row">
+          <div class="auth-row-label">
+            Confirm Password:
+            <span>Required</span>
+          </div>
+          <div class="auth-row-input">
+            <div class="pw-wrap">
+              <input type="password" class="auth-input" id="reg-pw2" placeholder="" autocomplete="new-password" />
+              <button class="pw-show" onclick="togglePw('reg-pw2', this)">Show</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Terms -->
+        <div class="auth-row">
+          <div class="auth-row-label"></div>
+          <div class="auth-row-input" style="gap:12px;">
+            <label class="auth-checkbox-row">
+              <input type="checkbox" class="auth-checkbox" id="reg-terms" />
+              I agree to the <a href="#">terms</a> and <a href="#">privacy policy</a>.
+            </label>
+          </div>
+        </div>
+
+      </div><!-- /auth-rows -->
+
+      <div class="auth-error" id="reg-error"></div>
+      <div class="auth-success" id="reg-success"></div>
+
+      <div class="auth-bottom">
+        <button class="btn-auth-submit" id="reg-btn" onclick="doRegister()">Register</button>
+        <div class="auth-alt">Already have an account? <a href="login.html">Log in</a></div>
+      </div>
+
+    </div><!-- /auth-frame -->
+
+    <div class="auth-breadcrumb"><a href="index.html">Home</a> › Register</div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://bglgsikoblveeofpdyuv.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJnbGdzaWtvYmx2ZWVvZnBkeXV2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxNzAyNDEsImV4cCI6MjA5Mjc0NjI0MX0.9WdcO6cvrbQ93TIGcgDOR6MU5VKD6zovEkYd-aNWYAA';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+function togglePw(id, btn) {
+  const inp = document.getElementById(id);
+  if (inp.type === 'password') { inp.type = 'text'; btn.textContent = 'Hide'; }
+  else { inp.type = 'password'; btn.textContent = 'Show'; }
+}
+
+let usernameOk = false;
+
+async function checkUsername() {
+  const val = document.getElementById('reg-username').value.trim();
+  const hint = document.getElementById('username-hint');
+  const inp = document.getElementById('reg-username');
+  if (!val) { hint.textContent = 'This is the name shown with your posts.'; hint.className = 'auth-hint'; usernameOk = false; return; }
+  if (!/^[a-zA-Z0-9_]{3,20}$/.test(val)) {
+    hint.textContent = 'Username must be 3-20 characters, letters/numbers/underscores only.';
+    hint.className = 'auth-hint err'; inp.classList.add('error'); usernameOk = false; return;
+  }
+  const { data } = await sb.from('profiles').select('id').eq('username', val).single();
+  if (data) {
+    hint.textContent = 'This username is already taken.';
+    hint.className = 'auth-hint err'; inp.classList.add('error'); usernameOk = false;
+  } else {
+    hint.textContent = '✓ Username is available!';
+    hint.className = 'auth-hint'; hint.style.color = '#4ade80';
+    inp.classList.remove('error'); usernameOk = true;
+  }
+}
+
+function checkPwStrength() {
+  const pw = document.getElementById('reg-pw').value;
+  const fill = document.getElementById('pw-strength-fill');
+  const hint = document.getElementById('pw-hint');
+  let strength = 0;
+  if (pw.length >= 6) strength++;
+  if (pw.length >= 10) strength++;
+  if (/[A-Z]/.test(pw)) strength++;
+  if (/[0-9]/.test(pw)) strength++;
+  if (/[^a-zA-Z0-9]/.test(pw)) strength++;
+  const colors = ['#f87171','#fb923c','#fbbf24','#86efac','#4ade80'];
+  const labels = ['Too short','Weak','Fair','Good','Strong'];
+  const pct = (strength / 5) * 100;
+  fill.style.width = pct + '%';
+  fill.style.background = colors[strength - 1] || '#f87171';
+  hint.textContent = pw.length < 6 ? 'Minimum 6 characters.' : labels[strength - 1] || 'Too short';
+}
+
+function showError(msg) {
+  const el = document.getElementById('reg-error');
+  el.textContent = msg; el.classList.add('show');
+  document.getElementById('reg-success').classList.remove('show');
+}
+
+function showSuccess(msg) {
+  const el = document.getElementById('reg-success');
+  el.textContent = msg; el.classList.add('show');
+  document.getElementById('reg-error').classList.remove('show');
+}
+
+async function doRegister() {
+  const username = document.getElementById('reg-username').value.trim();
+  const pw = document.getElementById('reg-pw').value;
+  const pw2 = document.getElementById('reg-pw2').value;
+  const terms = document.getElementById('reg-terms').checked;
+
+  if (!username || !usernameOk) return showError('Please choose a valid, available username.');
+  if (!pw || pw.length < 6) return showError('Password must be at least 6 characters.');
+  if (pw !== pw2) return showError('Passwords do not match.');
+  if (!terms) return showError('You must agree to the terms and privacy policy.');
+
+  const btn = document.getElementById('reg-btn');
+  btn.disabled = true; btn.textContent = 'Creating account...';
+
+  const fakeEmail = `${username.toLowerCase()}@glimzomc.local`;
+  const { data, error } = await sb.auth.signUp({ email: fakeEmail, password: pw });
+  if (error) { btn.disabled = false; btn.textContent = 'Register'; return showError(error.message); }
+
+  if (data.user) {
+    await sb.from('profiles').insert({ id: data.user.id, username, avatar_color: '#4ade80' });
+  }
+
+  showSuccess('✓ Account created! Redirecting to login...');
+  setTimeout(() => window.location.href = 'login.html', 1800);
+}
+
+// If already logged in redirect home
+sb.auth.getSession().then(({ data: { session } }) => {
+  if (session) window.location.href = 'index.html';
+});
+</script>
+</body>
+</html>
