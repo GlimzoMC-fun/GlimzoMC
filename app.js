@@ -140,12 +140,6 @@ function navigate(page, pushHistory = true) {
 
   if (page === 'gamemodes') {
     showGmList();
-    setTimeout(() => {
-      document.querySelectorAll('.gmode-card:not(.coming-card)').forEach((c) => {
-        c.style.opacity = '1';
-        c.style.transform = 'translateY(0)';
-      });
-    }, 50);
   }
 
   if (page === 'community') {
@@ -221,7 +215,7 @@ function buildGmCards() {
   MODES.forEach((m, i) => {
     const card = document.createElement('div');
     card.className = 'gmode-card';
-    card.style.cssText = `opacity:0;transform:translateY(20px);transition:opacity .5s ease ${i * 0.07}s,transform .5s ease ${i * 0.07}s,border-color .25s,box-shadow .25s;`;
+    card.style.cssText = `transition:opacity .5s ease ${i * 0.07}s,transform .5s ease ${i * 0.07}s,border-color .25s,box-shadow .25s;`;
     card.innerHTML = `
       <div class="card-thumb">
         <div class="card-thumb-bg" style="background:${m.bg}"></div>
@@ -257,6 +251,9 @@ function buildGmCards() {
       <div class="card-footer"><span class="meta-pill">TBA</span></div>
     </div>`;
   grid.appendChild(coming);
+
+  // Use IntersectionObserver so cards fade in when they actually become visible
+  observeFadeIn(grid.querySelectorAll('.gmode-card:not(.coming-card)'));
 }
 
 // ═══════════════════════════════════════════════════════
