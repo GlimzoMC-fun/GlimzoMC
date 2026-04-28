@@ -806,7 +806,7 @@ function renderAdminPosts() {
 // ── COMMUNITY POSTS (compact list) ────────────────────
 // ── PUBLIC COMMENTS ───────────────────────────────────
 async function loadPublicComments() {
-  const list = document.getElementById('sidebar-replies');
+  const list = document.getElementById('pub-comments-list');
   const countEl = document.getElementById('pub-comments-count');
   if (!list) return;
 
@@ -843,7 +843,7 @@ async function loadPublicComments() {
 }
 
 function renderPublicCommentForm() {
-  const el = document.getElementById('sidebar-reply-form');
+  const el = document.getElementById('pub-comment-form-wrap');
   if (!el) return;
   if (fUser && fProfile) {
     const color = fProfile.avatar_color || '#4ade80';
