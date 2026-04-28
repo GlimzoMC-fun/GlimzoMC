@@ -3,7 +3,7 @@
 
 const CONFIG = {
   ip:      'play.glimzomc.fun',
-  discord: 'https://discord.gg/AgxNjpqwDD',
+  discord: 'https://dsc.gg/glimzomc',
 };
 
 // ═══════════════════════════════════════════════════════
