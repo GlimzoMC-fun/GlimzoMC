@@ -20,8 +20,8 @@
     <li><a>Store</a></li>
   </ul>
   <div class="nav-right" id="nav-right">
-    <a href="login.html" class="btn-nav-login">Log In</a>
-    <a href="register.html" class="btn-nav-register">Register</a>
+    <a class="btn-nav-login" data-nav="login" style="cursor:pointer;">Log In</a>
+    <a class="btn-nav-register" data-nav="register" style="cursor:pointer;">Register</a>
   </div>
 </nav>
 
@@ -244,6 +244,114 @@
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
       <input type="text" id="searchOverlayInput" placeholder="Search gamemodes, guides, players..." />
       <button class="search-close" id="searchClose">✕</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ LOGIN PAGE ═══ -->
+<div id="page-login" class="page">
+  <div class="auth-page-wrap">
+    <div class="auth-box">
+      <div class="auth-page-title">Log <span>In</span></div>
+      <div class="auth-frame">
+        <div class="corner tl"></div><div class="corner tr"></div>
+        <div class="corner bl"></div><div class="corner br"></div>
+        <div class="auth-rows">
+          <div class="auth-row">
+            <div class="auth-row-label">Your username:</div>
+            <div class="auth-row-input">
+              <input type="text" class="auth-input" id="login-username" placeholder="YourUsername" autocomplete="username" />
+            </div>
+          </div>
+          <div class="auth-row">
+            <div class="auth-row-label">Password:</div>
+            <div class="auth-row-input">
+              <div class="pw-wrap">
+                <input type="password" class="auth-input" id="login-pw" placeholder="••••••••" autocomplete="current-password" />
+                <button class="pw-show" onclick="toggleAuthPw('login-pw',this)">Show</button>
+              </div>
+              <div class="auth-checkbox-row" style="margin-top:4px;">
+                <input type="checkbox" class="auth-checkbox" id="stay-logged" checked />
+                <label for="stay-logged">Stay logged in</label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="auth-error" id="login-error"></div>
+        <div class="auth-bottom">
+          <button class="btn-auth-submit" onclick="doLoginPage()">🔒 Log In</button>
+          <div class="auth-alt">
+            Don't have an account?
+            <span class="auth-alt-link" data-nav="register">Register now</span>
+          </div>
+        </div>
+      </div>
+      <div class="auth-breadcrumb"><span class="auth-alt-link" data-nav="home">Home</span> › Log In</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ REGISTER PAGE ═══ -->
+<div id="page-register" class="page">
+  <div class="auth-page-wrap">
+    <div class="auth-box">
+      <div class="auth-page-title"><span>Register</span></div>
+      <div class="auth-frame">
+        <div class="corner tl"></div><div class="corner tr"></div>
+        <div class="corner bl"></div><div class="corner br"></div>
+        <div class="auth-rows">
+          <div class="auth-row">
+            <div class="auth-row-label">Username:<span>Required</span></div>
+            <div class="auth-row-input">
+              <input type="text" class="auth-input" id="reg-username" placeholder="" autocomplete="username" oninput="checkRegUsername()" />
+              <div class="auth-hint" id="reg-username-hint">Letters, numbers and underscores only.</div>
+            </div>
+          </div>
+          <div class="auth-row">
+            <div class="auth-row-label">Email:<span>Required</span></div>
+            <div class="auth-row-input">
+              <input type="email" class="auth-input" id="reg-email" placeholder="you@example.com" autocomplete="email" />
+              <div class="auth-hint">Used for account recovery. Never shown publicly.</div>
+            </div>
+          </div>
+          <div class="auth-row">
+            <div class="auth-row-label">Password:<span>Required</span></div>
+            <div class="auth-row-input">
+              <div class="pw-wrap">
+                <input type="password" class="auth-input" id="reg-pw" placeholder="" autocomplete="new-password" oninput="checkRegPwStrength()" />
+                <button class="pw-show" onclick="toggleAuthPw('reg-pw',this)">Show</button>
+              </div>
+              <div class="pw-strength"><div class="pw-strength-fill" id="reg-pw-strength-fill"></div></div>
+              <div class="auth-hint" id="reg-pw-hint">Minimum 6 characters.</div>
+            </div>
+          </div>
+          <div class="auth-row">
+            <div class="auth-row-label">Confirm Password:<span>Required</span></div>
+            <div class="auth-row-input">
+              <div class="pw-wrap">
+                <input type="password" class="auth-input" id="reg-pw2" placeholder="" autocomplete="new-password" />
+                <button class="pw-show" onclick="toggleAuthPw('reg-pw2',this)">Show</button>
+              </div>
+            </div>
+          </div>
+          <div class="auth-row">
+            <div class="auth-row-label"></div>
+            <div class="auth-row-input" style="gap:12px;">
+              <label class="auth-checkbox-row">
+                <input type="checkbox" class="auth-checkbox" id="reg-terms" />
+                I agree to the <a href="#">terms</a> and <a href="#">privacy policy</a>.
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="auth-error" id="reg-error"></div>
+        <div class="auth-success" id="reg-success"></div>
+        <div class="auth-bottom">
+          <button class="btn-auth-submit" id="reg-btn" onclick="doRegisterPage()">Register</button>
+          <div class="auth-alt">Already have an account? <span class="auth-alt-link" data-nav="login">Log in</span></div>
+        </div>
+      </div>
+      <div class="auth-breadcrumb"><span class="auth-alt-link" data-nav="home">Home</span> › Register</div>
     </div>
   </div>
 </div>
