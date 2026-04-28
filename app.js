@@ -143,12 +143,36 @@ function navigate(page) {
     if (sb) loadForumData();
   }
 
-  if (page === 'community') {
-    loadForumData();
+  if (page === 'login') {
+    // clear fields and errors
+    const uEl = document.getElementById('login-username');
+    const pEl = document.getElementById('login-pw');
+    const eEl = document.getElementById('login-error');
+    if (uEl) uEl.value = '';
+    if (pEl) pEl.value = '';
+    if (eEl) { eEl.textContent = ''; eEl.classList.remove('show'); }
+  }
+
+  if (page === 'register') {
+    // clear fields, errors, success
+    ['reg-username','reg-email','reg-pw','reg-pw2'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.value = '';
+    });
+    const eEl = document.getElementById('reg-error');
+    const sEl = document.getElementById('reg-success');
+    if (eEl) { eEl.textContent = ''; eEl.classList.remove('show'); }
+    if (sEl) { sEl.textContent = ''; sEl.classList.remove('show'); }
+    const hint = document.getElementById('reg-username-hint');
+    if (hint) { hint.textContent = 'Letters, numbers and underscores only.'; hint.className = 'auth-hint'; hint.style.color = ''; }
+    const fill = document.getElementById('reg-pw-strength-fill');
+    if (fill) { fill.style.width = '0%'; }
+    regUsernameOk = false;
+    const btn = document.getElementById('reg-btn');
+    if (btn) { btn.disabled = false; btn.textContent = 'Register'; }
   }
 }
 
-// Wire nav clicks
+// Wire nav clicks (covers nav, logo, and inline auth links)
 document.querySelectorAll('[data-nav]').forEach((el) => {
   el.addEventListener('click', () => navigate(el.dataset.nav));
 });
@@ -587,8 +611,8 @@ function renderForumNav() {
       </div>`;
     } else {
       navRight.innerHTML = `
-        <a href="login.html" class="btn-nav-login">Log In</a>
-        <a href="register.html" class="btn-nav-register">Register</a>`;
+        <a class="btn-nav-login" data-nav="login" style="cursor:pointer;">Log In</a>
+        <a class="btn-nav-register" data-nav="register" style="cursor:pointer;">Register</a>`;
     }
   }
   // Update sidebar auth card
@@ -612,6 +636,7 @@ function renderForumNav() {
   }
   renderReplyForm();
   if (fCurrentPost) renderSidebarReplies(fCurrentPost);
+  rewireNavLinks();
 }
 
 async function forumLogin() {
@@ -984,7 +1009,140 @@ function fTimeAgo(d) {
   return `${Math.floor(s/86400)}d ago`;
 }
 
+// ── PAGE AUTH HELPERS ─────────────────────────────────
+function toggleAuthPw(id, btn) {
+  const inp = document.getElementById(id);
+  if (!inp) return;
+  if (inp.type === 'password') { inp.type = 'text'; btn.textContent = 'Hide'; }
+  else { inp.type = 'password'; btn.textContent = 'Show'; }
+}
+
+function showAuthError(id, msg) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = msg; el.classList.add('show');
+}
+function hideAuthError(id) {
+  const el = document.getElementById(id);
+  if (el) { el.textContent = ''; el.classList.remove('show'); }
+}
+
+// ── LOGIN PAGE ────────────────────────────────────────
+async function doLoginPage() {
+  if (!sb) return;
+  const username = document.getElementById('login-username')?.value.trim();
+  const pw = document.getElementById('login-pw')?.value;
+  hideAuthError('login-error');
+  if (!username) return showAuthError('login-error', 'Please enter your username.');
+  if (!pw) return showAuthError('login-error', 'Please enter your password.');
+
+  const { data: profile } = await sb.from('profiles').select('id, email').eq('username', username).single();
+  if (!profile) return showAuthError('login-error', 'Username not found. Check your spelling or register a new account.');
+  if (!profile.email) return showAuthError('login-error', 'No email on file for this account. Please contact support.');
+
+  const { error } = await sb.auth.signInWithPassword({ email: profile.email, password: pw });
+  if (error) return showAuthError('login-error', 'Incorrect password. Please try again.');
+  navigate('home');
+}
+
+// ── REGISTER PAGE ──────────────────────────────────────
+let regUsernameOk = false;
+
+async function checkRegUsername() {
+  if (!sb) return;
+  const val = document.getElementById('reg-username')?.value.trim();
+  const hint = document.getElementById('reg-username-hint');
+  const inp = document.getElementById('reg-username');
+  if (!val) {
+    hint.textContent = 'Letters, numbers and underscores only.';
+    hint.className = 'auth-hint'; hint.style.color = '';
+    inp.classList.remove('error'); regUsernameOk = false; return;
+  }
+  if (!/^[a-zA-Z0-9_]{3,20}$/.test(val)) {
+    hint.textContent = 'Username must be 3-20 characters, letters/numbers/underscores only.';
+    hint.className = 'auth-hint err'; hint.style.color = '';
+    inp.classList.add('error'); regUsernameOk = false; return;
+  }
+  const { data } = await sb.from('profiles').select('id').eq('username', val).single();
+  if (data) {
+    hint.textContent = 'This username is already taken.';
+    hint.className = 'auth-hint err'; hint.style.color = '';
+    inp.classList.add('error'); regUsernameOk = false;
+  } else {
+    hint.textContent = '✓ Username is available!';
+    hint.className = 'auth-hint'; hint.style.color = '#4ade80';
+    inp.classList.remove('error'); regUsernameOk = true;
+  }
+}
+
+function checkRegPwStrength() {
+  const pw = document.getElementById('reg-pw')?.value || '';
+  const fill = document.getElementById('reg-pw-strength-fill');
+  const hint = document.getElementById('reg-pw-hint');
+  if (!fill || !hint) return;
+  let s = 0;
+  if (pw.length >= 6) s++;
+  if (pw.length >= 10) s++;
+  if (/[A-Z]/.test(pw)) s++;
+  if (/[0-9]/.test(pw)) s++;
+  if (/[^a-zA-Z0-9]/.test(pw)) s++;
+  const colors = ['#f87171','#fb923c','#fbbf24','#86efac','#4ade80'];
+  const labels = ['Too short','Weak','Fair','Good','Strong'];
+  fill.style.width = ((s / 5) * 100) + '%';
+  fill.style.background = colors[s - 1] || '#f87171';
+  hint.textContent = pw.length < 6 ? 'Minimum 6 characters.' : (labels[s - 1] || 'Too short');
+}
+
+async function doRegisterPage() {
+  if (!sb) return;
+  const username = document.getElementById('reg-username')?.value.trim();
+  const email = document.getElementById('reg-email')?.value.trim();
+  const pw = document.getElementById('reg-pw')?.value;
+  const pw2 = document.getElementById('reg-pw2')?.value;
+  const terms = document.getElementById('reg-terms')?.checked;
+
+  hideAuthError('reg-error');
+  document.getElementById('reg-success')?.classList.remove('show');
+
+  if (!username || !regUsernameOk) return showAuthError('reg-error', 'Please choose a valid, available username.');
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showAuthError('reg-error', 'Please enter a valid email address.');
+  if (!pw || pw.length < 6) return showAuthError('reg-error', 'Password must be at least 6 characters.');
+  if (pw !== pw2) return showAuthError('reg-error', 'Passwords do not match.');
+  if (!terms) return showAuthError('reg-error', 'You must agree to the terms and privacy policy.');
+
+  const btn = document.getElementById('reg-btn');
+  btn.disabled = true; btn.textContent = 'Creating account...';
+
+  const { data, error } = await sb.auth.signUp({ email, password: pw });
+  if (error) { btn.disabled = false; btn.textContent = 'Register'; return showAuthError('reg-error', error.message); }
+
+  if (data.user) {
+    await sb.from('profiles').insert({ id: data.user.id, username, email, avatar_color: '#4ade80' });
+  }
+
+  const sEl = document.getElementById('reg-success');
+  if (sEl) { sEl.textContent = '✓ Account created! Redirecting to login...'; sEl.classList.add('show'); }
+  setTimeout(() => navigate('login'), 1800);
+}
+
+// Re-wire dynamically rendered nav links (called after renderForumNav injects new elements)
+function rewireNavLinks() {
+  document.querySelectorAll('[data-nav]').forEach((el) => {
+    if (!el._navWired) {
+      el._navWired = true;
+      el.addEventListener('click', () => navigate(el.dataset.nav));
+    }
+  });
+}
+
 // ── INIT ───────────────────────────────────────────────
+// Enter key on login page
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && document.getElementById('page-login')?.classList.contains('active')) {
+    doLoginPage();
+  }
+});
+
 (function() {
   const s = document.createElement('script');
   s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
