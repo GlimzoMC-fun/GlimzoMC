@@ -662,6 +662,7 @@ function renderForumNav() {
   }
   renderReplyForm();
   if (fCurrentPost) renderSidebarReplies(fCurrentPost);
+  renderPublicCommentForm();
   rewireNavLinks();
 }
 
@@ -736,8 +737,8 @@ async function loadForumData() {
     .order('created_at', { ascending: false });
   fAllPosts = data || [];
   renderAdminPosts();
-  renderCommunityPosts();
   renderLatestFeed();
+  await loadPublicComments();
 }
 
 // ── CATEGORIES ────────────────────────────────────────
@@ -803,38 +804,77 @@ function renderAdminPosts() {
 }
 
 // ── COMMUNITY POSTS (compact list) ────────────────────
-function renderCommunityPosts() {
-  const list = document.getElementById('posts-list-home');
+// ── PUBLIC COMMENTS ───────────────────────────────────
+async function loadPublicComments() {
+  const list = document.getElementById('sidebar-replies');
+  const countEl = document.getElementById('pub-comments-count');
   if (!list) return;
-  const search = (document.getElementById('forum-search-home')?.value || '').toLowerCase();
-  let posts = fAllPosts.filter(p => p.profiles?.role !== 'admin');
-  if (fActiveCat) posts = posts.filter(p => p.category_id === fActiveCat);
-  if (search) posts = posts.filter(p => p.title.toLowerCase().includes(search) || p.content.toLowerCase().includes(search));
 
-  if (!posts.length) {
-    list.innerHTML = `<div class="forum-empty"><div class="forum-empty-icon">💬</div><div class="forum-empty-txt">No posts yet. Be the first!</div></div>`;
-    return;
-  }
-  list.innerHTML = posts.map(p => {
-    const color = p.profiles?.avatar_color || '#4ade80';
-    const init = p.profiles?.username?.[0]?.toUpperCase() || '?';
-    const replies = p.replies?.[0]?.count || 0;
-    return `<div class="community-post-card" onclick="openForumPost(${p.id})">
-      <div class="cpav" style="background:${color}18;color:${color};">${init}</div>
-      <div class="cpc">
-        <div class="cpt">${p.title}</div>
-        <div class="cpm">
-          <span class="cpauth">@${p.profiles?.username||'Unknown'}</span>
-          <span class="cpcat">${p.categories?.icon||''} ${p.categories?.name||''}</span>
-          <span class="cptime">${fTimeAgo(p.created_at)}</span>
+  const { data } = await sb.from('public_comments')
+    .select('*, profiles(username, avatar_color, role)')
+    .order('created_at', { ascending: false });
+
+  const comments = data || [];
+  if (countEl) countEl.textContent = comments.length + ' comment' + (comments.length !== 1 ? 's' : '');
+
+  if (!comments.length) {
+    list.innerHTML = `<div style="padding:16px;font-size:12px;color:var(--gr);opacity:.4;">No comments yet. Be the first!</div>`;
+  } else {
+    list.innerHTML = comments.map(c => {
+      const color = c.profiles?.avatar_color || '#4ade80';
+      const init = c.profiles?.username?.[0]?.toUpperCase() || '?';
+      const isAdmin = c.profiles?.role === 'admin';
+      return `<div class="pub-comment">
+        <div class="pub-comment-av" style="background:${color}22;color:${color};">${init}</div>
+        <div class="pub-comment-body">
+          <div class="pub-comment-meta">
+            <span class="pub-comment-user" style="color:${color};">@${c.profiles?.username || 'Unknown'}</span>
+            ${isAdmin ? '<span class="pub-comment-admin-badge">[ADMIN]</span>' : ''}
+            <span class="pub-comment-time">${fTimeAgo(c.created_at)}</span>
+          </div>
+          <div class="pub-comment-text">${c.content}</div>
         </div>
-      </div>
-      <div class="cps"><span class="cpr">💬 ${replies}</span></div>
-    </div>`;
-  }).join('');
+      </div>`;
+    }).join('');
+  }
+
+  renderPublicCommentForm();
 }
 
-function filterPostsHome() { renderCommunityPosts(); }
+function renderPublicCommentForm() {
+  const el = document.getElementById('sidebar-reply-form');
+  if (!el) return;
+  if (fUser && fProfile) {
+    const color = fProfile.avatar_color || '#4ade80';
+    const init = fProfile.username[0].toUpperCase();
+    el.innerHTML = `<div class="pub-comment-form">
+      <div class="pub-comment-form-av" style="background:${color}22;color:${color};">${init}</div>
+      <div class="pub-comment-form-inner">
+        <textarea class="pub-comment-ta" id="pub-comment-ta" placeholder="Write a comment..."></textarea>
+        <button class="pub-comment-submit" onclick="submitPublicComment()">Post Comment</button>
+      </div>
+    </div>`;
+  } else {
+    el.innerHTML = `<div class="pub-comment-login-prompt">
+      <a onclick="openFAuth('login')">Log in</a> or <a onclick="openFAuth('signup')">sign up</a> to comment.
+    </div>`;
+  }
+}
+
+async function submitPublicComment() {
+  if (!fUser) return openFAuth('login');
+  const ta = document.getElementById('pub-comment-ta');
+  const content = ta?.value.trim();
+  if (!content) return fToast('❌ Comment cannot be empty', true);
+  const { error } = await sb.from('public_comments').insert({ content, author_id: fUser.id });
+  if (error) return fToast('❌ ' + error.message, true);
+  ta.value = '';
+  await loadPublicComments();
+  fToast('✓ Comment posted!');
+}
+
+function renderCommunityPosts() {}
+function filterPostsHome() {}
 
 // ── LATEST FEED (sidebar) ──────────────────────────────
 function renderLatestFeed() {
