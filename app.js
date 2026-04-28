@@ -119,7 +119,10 @@ const MODES = [
 // ═══════════════════════════════════════════════════════
 //  NAVIGATION
 // ═══════════════════════════════════════════════════════
-function navigate(page) {
+const PAGE_SLUGS = { home: '/', gamemodes: '/gamemodes/', community: '/community/', login: '/login/', register: '/register/' };
+const SLUG_TO_PAGE = { '/': 'home', '/gamemodes/': 'gamemodes', '/community/': 'community', '/login/': 'login', '/register/': 'register' };
+
+function navigate(page, pushHistory = true) {
   document.querySelectorAll('.page').forEach((p) => p.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
 
@@ -128,6 +131,12 @@ function navigate(page) {
   if (navEl) navEl.classList.add('active');
 
   window.scrollTo({ top: 0, behavior: 'instant' });
+
+  // Update the URL without reloading
+  if (pushHistory) {
+    const slug = PAGE_SLUGS[page] || '/';
+    history.pushState({ page }, '', slug);
+  }
 
   if (page === 'gamemodes') {
     showGmList();
@@ -1136,6 +1145,18 @@ function rewireNavLinks() {
 }
 
 // ── INIT ───────────────────────────────────────────────
+// Handle browser back/forward buttons
+window.addEventListener('popstate', (e) => {
+  const page = e.state?.page || SLUG_TO_PAGE[location.pathname] || 'home';
+  navigate(page, false);
+});
+
+// On first load, route to the correct page based on the current URL
+(function routeOnLoad() {
+  const page = SLUG_TO_PAGE[location.pathname] || 'home';
+  if (page !== 'home') navigate(page, false);
+})();
+
 // Enter key on login page
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && document.getElementById('page-login')?.classList.contains('active')) {
