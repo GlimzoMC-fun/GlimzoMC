@@ -664,6 +664,10 @@ function renderForumNav() {
   if (fCurrentPost) renderSidebarReplies(fCurrentPost);
   renderPublicCommentForm();
   rewireNavLinks();
+
+  // Show new thread button only for admins
+  const newThreadBtn = document.getElementById('btn-new-thread');
+  if (newThreadBtn) newThreadBtn.style.display = (fProfile?.role === 'admin') ? 'inline-flex' : 'none';
 }
 
 async function forumLogin() {
