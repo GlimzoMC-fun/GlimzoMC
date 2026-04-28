@@ -1100,7 +1100,7 @@ function checkRegPwStrength() {
 }
 
 async function doRegisterPage() {
-  if (!sb) return;
+  if (!sb) return showAuthError('reg-error', 'Still connecting, please wait a moment and try again.');
   const username = document.getElementById('reg-username')?.value.trim();
   const email = document.getElementById('reg-email')?.value.trim();
   const pw = document.getElementById('reg-pw')?.value;
@@ -1110,15 +1110,24 @@ async function doRegisterPage() {
   hideAuthError('reg-error');
   document.getElementById('reg-success')?.classList.remove('show');
 
-  if (!username || !regUsernameOk) return showAuthError('reg-error', 'Please choose a valid, available username.');
+  if (!username) return showAuthError('reg-error', 'Please enter a username.');
+  if (!/^[a-zA-Z0-9_]{3,20}$/.test(username)) return showAuthError('reg-error', 'Username must be 3-20 characters, letters/numbers/underscores only.');
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showAuthError('reg-error', 'Please enter a valid email address.');
   if (!pw || pw.length < 6) return showAuthError('reg-error', 'Password must be at least 6 characters.');
   if (pw !== pw2) return showAuthError('reg-error', 'Passwords do not match.');
   if (!terms) return showAuthError('reg-error', 'You must agree to the terms and privacy policy.');
 
   const btn = document.getElementById('reg-btn');
-  btn.disabled = true; btn.textContent = 'Creating account...';
+  btn.disabled = true; btn.textContent = 'Checking username...';
 
+  // Always verify username availability at submit time
+  const { data: existing } = await sb.from('profiles').select('id').eq('username', username).single();
+  if (existing) {
+    btn.disabled = false; btn.textContent = 'Register';
+    return showAuthError('reg-error', 'That username is already taken. Please choose another.');
+  }
+
+  btn.textContent = 'Creating account...';
   const { data, error } = await sb.auth.signUp({ email, password: pw });
   if (error) { btn.disabled = false; btn.textContent = 'Register'; return showAuthError('reg-error', error.message); }
 
