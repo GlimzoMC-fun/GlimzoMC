@@ -13,7 +13,7 @@
 
 <!-- ═══ NAV ═══ -->
 <nav>
-  <div class="nav-logo" data-nav="home">GlimzoMC</div>
+  <div class="nav-logo" data-nav="home" data-edit="nav-logo" data-edit-type="text" data-edit-label="Nav Logo Text">GlimzoMC</div>
   <ul class="nav-links">
     <li><a id="nav-home" data-nav="home" class="active">Home</a></li>
     <li><a id="nav-gamemodes" data-nav="gamemodes">Gamemodes</a></li>
@@ -50,9 +50,9 @@
           <div class="status-opt" onclick="setServerStatus('maintenance')">🟡 Server On Maintenance</div>
         </div>
       </div>
-      <h1 class="hero-title">Glimzo<span>MC</span></h1>
+      <h1 class="hero-title" data-edit="hero-title" data-edit-type="html" data-edit-label="Hero Title">Glimzo<span>MC</span></h1>
 
-      <p class="hero-sub">A competitive Minecraft network built for players who want to get better. Custom gamemodes, real anti-cheat, and ranked systems that actually mean something.</p>
+      <p class="hero-sub" data-edit="hero-sub" data-edit-type="text" data-edit-label="Hero Subtitle">A competitive Minecraft network built for players who want to get better. Custom gamemodes, real anti-cheat, and ranked systems that actually mean something.</p>
       <div class="hero-buttons">
         <button class="btn-primary" id="playBtn">
           <span>▶ Play Now</span>
@@ -74,15 +74,15 @@
 
   <!-- FEATURES STRIP -->
   <div class="features-strip">
-    <div class="feat-item"><span>⚡</span> Low Ping Servers</div>
+    <div class="feat-item" data-edit="feat-1" data-edit-type="html" data-edit-label="Feature 1"><span>⚡</span> Low Ping Servers</div>
     <div class="feat-div"></div>
-    <div class="feat-item"><span>🛡️</span> Active Anti-Cheat</div>
+    <div class="feat-item" data-edit="feat-2" data-edit-type="html" data-edit-label="Feature 2"><span>🛡️</span> Active Anti-Cheat</div>
     <div class="feat-div"></div>
-    <div class="feat-item"><span>🏆</span> Ranked Systems</div>
+    <div class="feat-item" data-edit="feat-3" data-edit-type="html" data-edit-label="Feature 3"><span>🏆</span> Ranked Systems</div>
     <div class="feat-div"></div>
-    <div class="feat-item"><span>🎮</span> Custom Gamemodes</div>
+    <div class="feat-item" data-edit="feat-4" data-edit-type="html" data-edit-label="Feature 4"><span>🎮</span> Custom Gamemodes</div>
     <div class="feat-div"></div>
-    <div class="feat-item"><span>🔒</span> Zero Pay-to-Win</div>
+    <div class="feat-item" data-edit="feat-5" data-edit-type="html" data-edit-label="Feature 5"><span>🔒</span> Zero Pay-to-Win</div>
   </div>
 
 
@@ -98,8 +98,8 @@
     <div class="forum-home-header">
       <div>
         <div class="section-label">GlimzoMC</div>
-        <h2 class="section-title">Community Portal</h2>
-        <p class="section-sub">News, updates, and community discussion, all in one place.</p>
+        <h2 class="section-title" data-edit="community-title" data-edit-type="text" data-edit-label="Community Section Title">Community Portal</h2>
+        <p class="section-sub" data-edit="community-sub" data-edit-type="text" data-edit-label="Community Subtitle">News, updates, and community discussion, all in one place.</p>
       </div>
       <button class="btn-new-post-home" id="btn-new-thread" onclick="openNewPostHome()" style="display:none;">+ New Thread</button>
     </div>
