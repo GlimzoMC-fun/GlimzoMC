@@ -248,7 +248,7 @@ function injectForumDOM() {
   }
   if (!document.getElementById('fmodal-auth')) {
     const m = document.createElement('div'); m.id = 'fmodal-auth'; m.className = 'fmodal-overlay';
-    m.innerHTML = `<div class="fmodal"><div class="fmodal-hd"><div class="fmodal-title" id="fauth-title">Log In</div><button class="fmodal-close" onclick="closeFModal('fmodal-auth')">✕</button></div><div class="auth-tabs-home"><button class="auth-tab-home active" id="ftab-login" onclick="switchFTab('login')">Log In</button><button class="auth-tab-home" id="ftab-signup" onclick="switchFTab('signup')">Sign Up</button></div><div id="fauth-login"><div class="fform-group"><label class="fform-label">Username</label><input type="text" class="fform-input" id="f-login-username" placeholder="YourUsername" /></div><div class="fform-group"><label class="fform-label">Password</label><input type="password" class="fform-input" id="f-login-pw" placeholder="••••••••" /></div><button class="fform-submit" onclick="forumLogin()">Log In</button></div><div id="fauth-signup" style="display:none;"><div class="fform-group"><label class="fform-label">Username</label><input type="text" class="fform-input" id="f-signup-user" placeholder="YourUsername" /></div><div class="fform-group"><label class="fform-label">Email</label><input type="email" class="fform-input" id="f-signup-email" placeholder="you@example.com" /></div><div class="fform-group"><label class="fform-label">Password</label><input type="password" class="fform-input" id="f-signup-pw" placeholder="Min 6 characters" /></div><button class="fform-submit" onclick="forumSignup()">Create Account</button></div></div>`;
+    m.innerHTML = `<div class="fmodal"><div class="fmodal-hd"><div class="fmodal-title" id="fauth-title">Log In</div><button class="fmodal-close" onclick="closeFModal('fmodal-auth')">✕</button></div><div class="auth-tabs-home"><button class="auth-tab-home active" id="ftab-login" onclick="switchFTab('login')">Log In</button><button class="auth-tab-home" id="ftab-signup" onclick="switchFTab('signup')">Sign Up</button></div><div id="fauth-login"><div class="fform-group"><label class="fform-label">Email</label><input type="email" class="fform-input" id="f-login-email" placeholder="you@gmail.com" /></div><div class="fform-group"><label class="fform-label">Password</label><input type="password" class="fform-input" id="f-login-pw" placeholder="••••••••" /></div><button class="fform-submit" onclick="forumLogin()">Log In</button></div><div id="fauth-signup" style="display:none;"><div class="fform-group"><label class="fform-label">Username</label><input type="text" class="fform-input" id="f-signup-user" placeholder="YourUsername" /></div><div class="fform-group"><label class="fform-label">Email</label><input type="email" class="fform-input" id="f-signup-email" placeholder="you@gmail.com" /></div><div class="fform-group"><label class="fform-label">Password</label><input type="password" class="fform-input" id="f-signup-pw" placeholder="Min 6 characters" /></div><button class="fform-submit" onclick="forumSignup()">Create Account</button></div></div>`;
     m.addEventListener('click', e => { if (e.target===m) closeFModal('fmodal-auth'); });
     document.body.appendChild(m);
   }
@@ -337,24 +337,21 @@ function renderForumNav() {
 }
 
 async function forumLogin() {
-  const username = document.getElementById('f-login-username').value.trim();
+  const email = document.getElementById('f-login-email').value.trim();
   const pw = document.getElementById('f-login-pw').value;
-  if (!username) return fToast('❌ Enter your username', true);
+  if (!email) return fToast('❌ Enter your email', true);
   if (!pw) return fToast('❌ Enter your password', true);
-  const { data: profile } = await sb.from('profiles').select('id, email').eq('username', username).single();
-  if (!profile) return fToast('❌ Username not found', true);
-  const fakeEmail = username.toLowerCase() + '@glimzomc.local';
-  const { error } = await sb.auth.signInWithPassword({ email: fakeEmail, password: pw });
-  if (error) return fToast('❌ Wrong password', true);
+  const { error } = await sb.auth.signInWithPassword({ email, password: pw });
+  if (error) return fToast('❌ Incorrect email or password', true);
   closeFModal('fmodal-auth'); fToast('✓ Logged in!');
 }
 
 async function forumSignup() {
   const username = document.getElementById('f-signup-user').value.trim();
-  const email = document.getElementById('f-signup-email')?.value.trim();
+  const email = document.getElementById('f-signup-email').value.trim();
   const pw = document.getElementById('f-signup-pw').value;
   if (!username || username.length < 3) return fToast('❌ Username must be 3+ characters', true);
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fToast('❌ Enter a valid email', true);
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fToast('❌ Enter a valid email address', true);
   if (!pw || pw.length < 6) return fToast('❌ Password must be 6+ characters', true);
   if (!/^[a-zA-Z0-9_]+$/.test(username)) return fToast('❌ Username: letters, numbers, underscores only', true);
   const { data: existing } = await sb.from('profiles').select('id').eq('username', username).single();
@@ -601,16 +598,13 @@ function hideAuthError(id) { const el = document.getElementById(id); if (el) { e
 
 async function doLoginPage() {
   if (!sb) return showAuthError('login-error', 'Still connecting, please wait.');
-  const username = document.getElementById('login-username')?.value.trim();
+  const email = document.getElementById('login-email')?.value.trim();
   const pw = document.getElementById('login-pw')?.value;
   hideAuthError('login-error');
-  if (!username) return showAuthError('login-error', 'Please enter your username.');
+  if (!email) return showAuthError('login-error', 'Please enter your email.');
   if (!pw) return showAuthError('login-error', 'Please enter your password.');
-  const { data: profile } = await sb.from('profiles').select('id').eq('username', username).single();
-  if (!profile) return showAuthError('login-error', 'Username not found.');
-  const fakeEmail = username.toLowerCase() + '@glimzomc.local';
-  const { data, error } = await sb.auth.signInWithPassword({ email: fakeEmail, password: pw });
-  if (error) return showAuthError('login-error', 'Incorrect password. Please try again.');
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pw });
+  if (error) return showAuthError('login-error', 'Incorrect email or password. Please try again.');
   if (data.user) await setForumUser(data.user);
   navigate('home');
 }
@@ -646,6 +640,7 @@ function checkRegPwStrength() {
 async function doRegisterPage() {
   if (!sb) return showAuthError('reg-error', 'Still connecting, please wait.');
   const username = document.getElementById('reg-username')?.value.trim();
+  const email = document.getElementById('reg-email')?.value.trim();
   const pw = document.getElementById('reg-pw')?.value;
   const pw2 = document.getElementById('reg-pw2')?.value;
   const terms = document.getElementById('reg-terms')?.checked;
@@ -653,18 +648,18 @@ async function doRegisterPage() {
   document.getElementById('reg-success')?.classList.remove('show');
   if (!username) return showAuthError('reg-error', 'Please enter a username.');
   if (!/^[a-zA-Z0-9_]{3,20}$/.test(username)) return showAuthError('reg-error', 'Username must be 3-20 chars, letters/numbers/underscores only.');
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showAuthError('reg-error', 'Please enter a valid email address.');
   if (!pw || pw.length < 6) return showAuthError('reg-error', 'Password must be at least 6 characters.');
   if (pw !== pw2) return showAuthError('reg-error', 'Passwords do not match.');
   if (!terms) return showAuthError('reg-error', 'You must agree to the terms and privacy policy.');
   const btn = document.getElementById('reg-btn');
   btn.disabled = true; btn.textContent = 'Checking username...';
   const { data: existing } = await sb.from('profiles').select('id').eq('username', username).single();
-  if (existing) { btn.disabled = false; btn.textContent = 'Register'; return showAuthError('reg-error', 'That username is already taken.'); }
+  if (existing) { btn.disabled = false; btn.textContent = 'Sign Up'; return showAuthError('reg-error', 'That username is already taken.'); }
   btn.textContent = 'Creating account...';
-  const fakeEmail = username.toLowerCase() + '@glimzomc.local';
-  const { data, error } = await sb.auth.signUp({ email: fakeEmail, password: pw });
-  if (error) { btn.disabled = false; btn.textContent = 'Register'; return showAuthError('reg-error', error.message); }
-  if (data.user) { await sb.from('profiles').insert({ id: data.user.id, username, avatar_color: '#4ade80' }); await setForumUser(data.user); }
+  const { data, error } = await sb.auth.signUp({ email, password: pw });
+  if (error) { btn.disabled = false; btn.textContent = 'Sign Up'; return showAuthError('reg-error', error.message); }
+  if (data.user) { await sb.from('profiles').insert({ id: data.user.id, username, email, avatar_color: '#4ade80' }); await setForumUser(data.user); }
   navigate('home');
 }
 
