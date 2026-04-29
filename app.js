@@ -248,7 +248,7 @@ function injectForumDOM() {
   }
   if (!document.getElementById('fmodal-auth')) {
     const m = document.createElement('div'); m.id = 'fmodal-auth'; m.className = 'fmodal-overlay';
-    m.innerHTML = `<div class="fmodal"><div class="fmodal-hd"><div class="fmodal-title" id="fauth-title">Log In</div><button class="fmodal-close" onclick="closeFModal('fmodal-auth')">✕</button></div><div class="auth-tabs-home"><button class="auth-tab-home active" id="ftab-login" onclick="switchFTab('login')">Log In</button><button class="auth-tab-home" id="ftab-signup" onclick="switchFTab('signup')">Sign Up</button></div><div id="fauth-login"><div class="fform-group"><label class="fform-label">Email</label><input type="email" class="fform-input" id="f-login-email" placeholder="you@gmail.com" /></div><div class="fform-group"><label class="fform-label">Password</label><input type="password" class="fform-input" id="f-login-pw" placeholder="••••••••" /></div><button class="fform-submit" onclick="forumLogin()">Log In</button></div><div id="fauth-signup" style="display:none;"><div class="fform-group"><label class="fform-label">Username</label><input type="text" class="fform-input" id="f-signup-user" placeholder="YourUsername" /></div><div class="fform-group"><label class="fform-label">Email</label><input type="email" class="fform-input" id="f-signup-email" placeholder="you@gmail.com" /></div><div class="fform-group"><label class="fform-label">Password</label><input type="password" class="fform-input" id="f-signup-pw" placeholder="Min 6 characters" /></div><button class="fform-submit" onclick="forumSignup()">Create Account</button></div></div>`;
+    m.innerHTML = `<div class="fmodal"><div class="fmodal-hd"><div class="fmodal-title" id="fauth-title">Log In</div><button class="fmodal-close" onclick="closeFModal('fmodal-auth')">✕</button></div><div class="auth-tabs-home"><button class="auth-tab-home active" id="ftab-login" onclick="switchFTab('login')">Log In</button><button class="auth-tab-home" id="ftab-signup" onclick="switchFTab('signup')">Sign Up</button></div><div id="fauth-login"><div class="fform-group"><label class="fform-label">Username</label><input type="text" class="fform-input" id="f-login-username" placeholder="YourUsername" /></div><div class="fform-group"><label class="fform-label">Password</label><input type="password" class="fform-input" id="f-login-pw" placeholder="••••••••" /></div><button class="fform-submit" onclick="forumLogin()">Log In</button></div><div id="fauth-signup" style="display:none;"><div class="fform-group"><label class="fform-label">Username</label><input type="text" class="fform-input" id="f-signup-user" placeholder="YourUsername" /></div><div class="fform-group"><label class="fform-label">Email</label><input type="email" class="fform-input" id="f-signup-email" placeholder="you@gmail.com" /></div><div class="fform-group"><label class="fform-label">Password</label><input type="password" class="fform-input" id="f-signup-pw" placeholder="Min 6 characters" /></div><button class="fform-submit" onclick="forumSignup()">Create Account</button></div></div>`;
     m.addEventListener('click', e => { if (e.target===m) closeFModal('fmodal-auth'); });
     document.body.appendChild(m);
   }
@@ -337,12 +337,14 @@ function renderForumNav() {
 }
 
 async function forumLogin() {
-  const email = document.getElementById('f-login-email').value.trim();
+  const username = document.getElementById('f-login-username').value.trim();
   const pw = document.getElementById('f-login-pw').value;
-  if (!email) return fToast('❌ Enter your email', true);
+  if (!username) return fToast('❌ Enter your username', true);
   if (!pw) return fToast('❌ Enter your password', true);
-  const { error } = await sb.auth.signInWithPassword({ email, password: pw });
-  if (error) return fToast('❌ Incorrect email or password', true);
+  const { data: profile } = await sb.from('profiles').select('email').eq('username', username).single();
+  if (!profile?.email) return fToast('❌ Username not found', true);
+  const { error } = await sb.auth.signInWithPassword({ email: profile.email, password: pw });
+  if (error) return fToast('❌ Incorrect password', true);
   closeFModal('fmodal-auth'); fToast('✓ Logged in!');
 }
 
@@ -598,13 +600,15 @@ function hideAuthError(id) { const el = document.getElementById(id); if (el) { e
 
 async function doLoginPage() {
   if (!sb) return showAuthError('login-error', 'Still connecting, please wait.');
-  const email = document.getElementById('login-email')?.value.trim();
+  const username = document.getElementById('login-username')?.value.trim();
   const pw = document.getElementById('login-pw')?.value;
   hideAuthError('login-error');
-  if (!email) return showAuthError('login-error', 'Please enter your email.');
+  if (!username) return showAuthError('login-error', 'Please enter your username.');
   if (!pw) return showAuthError('login-error', 'Please enter your password.');
-  const { data, error } = await sb.auth.signInWithPassword({ email, password: pw });
-  if (error) return showAuthError('login-error', 'Incorrect email or password. Please try again.');
+  const { data: profile } = await sb.from('profiles').select('email').eq('username', username).single();
+  if (!profile?.email) return showAuthError('login-error', 'Username not found.');
+  const { data, error } = await sb.auth.signInWithPassword({ email: profile.email, password: pw });
+  if (error) return showAuthError('login-error', 'Incorrect password. Please try again.');
   if (data.user) await setForumUser(data.user);
   navigate('home');
 }
