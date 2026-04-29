@@ -147,7 +147,7 @@ function navigate(page, pushHistory = true) {
   }
 
   if (page === 'login') {
-    const eEmail = document.getElementById('login-email');
+    const eEmail = document.getElementById('login-username');
     const pEl = document.getElementById('login-pw');
     const eEl = document.getElementById('login-error');
     if (eEmail) eEmail.value = '';
@@ -157,7 +157,7 @@ function navigate(page, pushHistory = true) {
 
   if (page === 'register') {
     // clear fields, errors, success
-    ['reg-username','reg-email','reg-pw','reg-pw2'].forEach(id => {
+    ['reg-username','reg-pw','reg-pw2'].forEach(id => {
       const el = document.getElementById(id); if (el) el.value = '';
     });
     const eEl = document.getElementById('reg-error');
@@ -516,6 +516,7 @@ function initSupabase() {
   sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   injectForumDOM();
   initForumAuth();
+  loadServerStatus();
   // Only load forum data if community portal is the active page
   if (document.getElementById('page-community')?.classList.contains('active')) {
     loadForumData();
@@ -597,7 +598,7 @@ async function initForumAuth() {
       // Only auto-set if we don't already have the user loaded (avoids race on register)
       if (!fUser) await setForumUser(session.user);
     } else if (!session) {
-      fUser = null; fProfile = null; renderForumNav();
+      fUser = null; fProfile = null; renderForumNav(); updateStatusBadgeForAdmin();
     }
   });
 }
@@ -607,6 +608,7 @@ async function setForumUser(user) {
   const { data } = await sb.from('profiles').select('*').eq('id', user.id).single();
   fProfile = data;
   renderForumNav();
+  updateStatusBadgeForAdmin();
 }
 
 function renderForumNav() {
@@ -683,16 +685,6 @@ async function forumLogin() {
   if (!profile.email) return fToast('❌ No email on file — please use the main login page', true);
 
   const { data, error } = await sb.auth.signInWithPassword({ email: profile.email, password: pw });
-
-  // Log attempt
-  await sb.from('login_logs').insert({
-    email: profile.email,
-    success: !error,
-    error_message: error ? error.message : null,
-    user_id: data?.user?.id || null,
-    event_type: 'login',
-    attempted_at: new Date().toISOString(),
-  }).then(() => {});
 
   if (error) return fToast('❌ Wrong password', true);
   closeFModal('fmodal-auth'); fToast('✓ Logged in!');
@@ -1134,25 +1126,18 @@ function hideAuthError(id) {
 // ── LOGIN PAGE ────────────────────────────────────────
 async function doLoginPage() {
   if (!sb) return showAuthError('login-error', 'Still connecting, please wait a moment.');
-  const email = document.getElementById('login-email')?.value.trim();
+  const username = document.getElementById('login-username')?.value.trim();
   const pw = document.getElementById('login-pw')?.value;
   hideAuthError('login-error');
-  if (!email) return showAuthError('login-error', 'Please enter your email.');
+  if (!username) return showAuthError('login-error', 'Please enter your username.');
   if (!pw) return showAuthError('login-error', 'Please enter your password.');
 
-  const { data, error } = await sb.auth.signInWithPassword({ email, password: pw });
+  const { data: profile } = await sb.from('profiles').select('id').eq('username', username).single();
+  if (!profile) return showAuthError('login-error', 'Username not found. Check your spelling or register a new account.');
 
-  // Log every attempt
-  await sb.from('login_logs').insert({
-    email,
-    success: !error,
-    error_message: error ? error.message : null,
-    user_id: data?.user?.id || null,
-    event_type: 'login',
-    attempted_at: new Date().toISOString(),
-  }).then(() => {});  // fire and forget, don't block on failure
-
-  if (error) return showAuthError('login-error', 'Incorrect email or password. Please try again.');
+  const fakeEmail = username.toLowerCase() + '@glimzomc.local';
+  const { data, error } = await sb.auth.signInWithPassword({ email: fakeEmail, password: pw });
+  if (error) return showAuthError('login-error', 'Incorrect password. Please try again.');
 
   if (data.user) await setForumUser(data.user);
   navigate('home');
@@ -1207,9 +1192,8 @@ function checkRegPwStrength() {
 }
 
 async function doRegisterPage() {
-  if (!sb) return showAuthError('reg-error', 'Still connecting, please wait a moment and try again.');
+  if (!sb) return showAuthError('reg-error', 'Still connecting, please wait a moment.');
   const username = document.getElementById('reg-username')?.value.trim();
-  const email = document.getElementById('reg-email')?.value.trim();
   const pw = document.getElementById('reg-pw')?.value;
   const pw2 = document.getElementById('reg-pw2')?.value;
   const terms = document.getElementById('reg-terms')?.checked;
@@ -1219,7 +1203,6 @@ async function doRegisterPage() {
 
   if (!username) return showAuthError('reg-error', 'Please enter a username.');
   if (!/^[a-zA-Z0-9_]{3,20}$/.test(username)) return showAuthError('reg-error', 'Username must be 3-20 characters, letters/numbers/underscores only.');
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showAuthError('reg-error', 'Please enter a valid email address.');
   if (!pw || pw.length < 6) return showAuthError('reg-error', 'Password must be at least 6 characters.');
   if (pw !== pw2) return showAuthError('reg-error', 'Passwords do not match.');
   if (!terms) return showAuthError('reg-error', 'You must agree to the terms and privacy policy.');
@@ -1227,35 +1210,18 @@ async function doRegisterPage() {
   const btn = document.getElementById('reg-btn');
   btn.disabled = true; btn.textContent = 'Checking username...';
 
-  // Verify username not taken
   const { data: existing } = await sb.from('profiles').select('id').eq('username', username).single();
-  if (existing) {
-    btn.disabled = false; btn.textContent = 'Register';
-    return showAuthError('reg-error', 'That username is already taken. Please choose another.');
-  }
+  if (existing) { btn.disabled = false; btn.textContent = 'Register'; return showAuthError('reg-error', 'That username is already taken.'); }
 
   btn.textContent = 'Creating account...';
-  const { data, error } = await sb.auth.signUp({ email, password: pw });
-
-  // Log the registration attempt
-  await sb.from('login_logs').insert({
-    email,
-    success: !error,
-    error_message: error ? error.message : null,
-    user_id: data?.user?.id || null,
-    event_type: 'register',
-    attempted_at: new Date().toISOString(),
-  }).then(() => {});
-
+  const fakeEmail = username.toLowerCase() + '@glimzomc.local';
+  const { data, error } = await sb.auth.signUp({ email: fakeEmail, password: pw });
   if (error) { btn.disabled = false; btn.textContent = 'Register'; return showAuthError('reg-error', error.message); }
 
   if (data.user) {
-    // Insert profile first, then set user so nav renders with correct username
-    await sb.from('profiles').insert({ id: data.user.id, username, email, avatar_color: '#4ade80' });
+    await sb.from('profiles').insert({ id: data.user.id, username, avatar_color: '#4ade80' });
     await setForumUser(data.user);
   }
-
-  // Go straight to home — username shows in nav immediately
   navigate('home');
 }
 
@@ -1333,3 +1299,62 @@ window.addEventListener('scroll', () => {
     obs.observe(el);
   });
 })();
+
+// ═══════════════════════════════════════════════════════
+//  SERVER STATUS BADGE
+// ═══════════════════════════════════════════════════════
+const STATUS_CONFIG = {
+  online:      { dot: 'online',      text: 'Server Online — Java 1.8–1.21' },
+  offline:     { dot: 'offline',     text: 'Server Offline' },
+  maintenance: { dot: 'maintenance', text: 'Server On Maintenance' },
+};
+
+async function loadServerStatus() {
+  if (!sb) return;
+  const { data } = await sb.from('server_status').select('status').eq('id', 1).single();
+  if (data) applyStatus(data.status);
+}
+
+function applyStatus(status) {
+  const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.online;
+  const dot = document.getElementById('status-dot');
+  const text = document.getElementById('status-text');
+  if (dot) { dot.className = 'badge-dot ' + cfg.dot; }
+  if (text) text.textContent = cfg.text;
+}
+
+async function setServerStatus(status) {
+  if (!sb || !fProfile || fProfile.role !== 'admin') return;
+  await sb.from('server_status').update({ status, updated_at: new Date().toISOString() }).eq('id', 1);
+  applyStatus(status);
+  closeStatusDropdown();
+  fToast('✓ Status updated!');
+}
+
+function toggleStatusDropdown() {
+  const dd = document.getElementById('status-dropdown');
+  if (!dd) return;
+  dd.style.display = dd.style.display === 'none' ? 'block' : 'none';
+}
+
+function closeStatusDropdown() {
+  const dd = document.getElementById('status-dropdown');
+  if (dd) dd.style.display = 'none';
+}
+
+function updateStatusBadgeForAdmin() {
+  const badge = document.getElementById('server-status-badge');
+  const arrow = document.getElementById('status-arrow');
+  const isAdmin = fProfile?.role === 'admin';
+  if (badge) badge.classList.toggle('clickable', isAdmin);
+  if (arrow) arrow.style.display = isAdmin ? 'inline' : 'none';
+  if (badge) {
+    badge.onclick = isAdmin ? toggleStatusDropdown : null;
+  }
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+  const wrap = document.getElementById('server-status-badge')?.closest('.hero-badge-wrap');
+  if (wrap && !wrap.contains(e.target)) closeStatusDropdown();
+});
