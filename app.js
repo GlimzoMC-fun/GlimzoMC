@@ -424,19 +424,31 @@ async function loadPublicComments() {
   const list = document.getElementById('pub-comments-list');
   const countEl = document.getElementById('pub-comments-count');
   if (!list) return;
-  const { data } = await sb.from('public_comments').select('*, profiles(username, avatar_color, role)').order('created_at', { ascending: false });
-  const comments = data || [];
-  if (countEl) countEl.textContent = comments.length + ' comment' + (comments.length !== 1 ? 's' : '');
-  if (!comments.length) {
+
+  // Fetch comments
+  const { data: comments } = await sb.from('public_comments').select('*').order('created_at', { ascending: false });
+  const rows = comments || [];
+
+  // Manually fetch profiles for each unique author
+  const authorIds = [...new Set(rows.map(c => c.author_id).filter(Boolean))];
+  let profileMap = {};
+  if (authorIds.length) {
+    const { data: profs } = await sb.from('profiles').select('id, username, avatar_color, role').in('id', authorIds);
+    (profs || []).forEach(p => { profileMap[p.id] = p; });
+  }
+
+  if (countEl) countEl.textContent = rows.length + ' comment' + (rows.length !== 1 ? 's' : '');
+  if (!rows.length) {
     list.innerHTML = `<div style="border-top:1px solid rgba(74,222,128,.08);padding:14px 14px;font-size:12px;color:var(--gr);opacity:.4;">No comments yet. Be the first!</div>`;
   } else {
     const currentIsAdmin = fProfile?.role === 'admin';
-    list.innerHTML = `<div style="border-top:1px solid rgba(74,222,128,.08);">` + comments.map(c => {
-      const color = c.profiles?.avatar_color || '#4ade80';
-      const init = c.profiles?.username?.[0]?.toUpperCase() || '?';
-      const isAdmin = c.profiles?.role === 'admin';
+    list.innerHTML = `<div style="border-top:1px solid rgba(74,222,128,.08);">` + rows.map(c => {
+      const prof = profileMap[c.author_id];
+      const color = prof?.avatar_color || '#4ade80';
+      const init = prof?.username?.[0]?.toUpperCase() || '?';
+      const isAdmin = prof?.role === 'admin';
       const canDelete = fUser && (fUser.id === c.author_id || currentIsAdmin);
-      return `<div class="pub-comment" id="pub-comment-${c.id}"><div class="pub-comment-av" style="background:${color}22;color:${color};">${init}</div><div class="pub-comment-body"><div class="pub-comment-meta"><span class="pub-comment-user" style="color:${color};">@${c.profiles?.username || 'Unknown'}</span>${isAdmin ? '<span class="pub-comment-admin-badge">[ADMIN]</span>' : ''}<span class="pub-comment-time">${fTimeAgo(c.created_at)}</span>${canDelete ? `<button class="pub-comment-delete" onclick="deletePublicComment(${c.id})">✕</button>` : ''}</div><div class="pub-comment-text">${c.content}</div></div></div>`;
+      return `<div class="pub-comment" id="pub-comment-${c.id}"><div class="pub-comment-av" style="background:${color}22;color:${color};">${init}</div><div class="pub-comment-body"><div class="pub-comment-meta"><span class="pub-comment-user" style="color:${color};">@${prof?.username || 'Unknown'}</span>${isAdmin ? '<span class="pub-comment-admin-badge">[ADMIN]</span>' : ''}<span class="pub-comment-time">${fTimeAgo(c.created_at)}</span>${canDelete ? `<button class="pub-comment-delete" onclick="deletePublicComment(${c.id})">✕</button>` : ''}</div><div class="pub-comment-text">${c.content}</div></div></div>`;
     }).join('') + `</div>`;
   }
   renderPublicCommentForm();
