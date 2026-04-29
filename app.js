@@ -301,6 +301,7 @@ function renderForumNav() {
             <div><div class="nav-dd-name">${fProfile.username}</div><div class="nav-dd-role">${isAdmin ? '🛡️ Staff' : '👤 Member'}</div></div>
           </div>
           <div class="nav-dropdown-divider"></div>
+          ${isAdmin ? `<button class="nav-dd-item nav-dd-editmode" onclick="toggleEditMode()"><span>✏️</span> Edit Mode</button><div class="nav-dropdown-divider"></div>` : ''}
           <button class="nav-dd-item" onclick="forumSignout()"><span>⬡</span> Sign Out</button>
         </div>
       </div>`;
@@ -772,3 +773,334 @@ function updateStatusBadgeForAdmin() {
   if (arrow) arrow.style.display = isAdmin ? 'inline' : 'none';
   if (badge) badge.onclick = isAdmin ? toggleStatusDropdown : null;
 }
+
+// ═══════════════════════════════════════════════════════
+// GLIMZO ADMIN EDITOR ENGINE
+// ═══════════════════════════════════════════════════════
+
+let editModeActive = false;
+let editSelected = null;
+let siteSettings = {};
+
+async function loadSiteSettings() {
+  if (!sb) return;
+  const { data } = await sb.from('site_settings').select('*');
+  if (!data) return;
+  data.forEach(row => { siteSettings[row.key] = row.value; });
+  applySiteSettings();
+}
+
+function applySiteSettings() {
+  // Apply CSS vars first
+  ['--g','--bg','--w','--gr'].forEach(v => {
+    if (siteSettings[v]) document.documentElement.style.setProperty(v, siteSettings[v]);
+  });
+
+  // Apply content and inline styles per element
+  document.querySelectorAll('[data-edit]').forEach(el => {
+    const key = el.dataset.edit;
+    const type = el.dataset.editType || 'text';
+    if (siteSettings[key]) {
+      if (type === 'text') el.textContent = siteSettings[key];
+      else if (type === 'html') el.innerHTML = siteSettings[key];
+      else if (type === 'src') el.src = siteSettings[key];
+    }
+    if (siteSettings[key + '__color']) el.style.color = siteSettings[key + '__color'];
+    if (siteSettings[key + '__bg']) el.style.backgroundColor = siteSettings[key + '__bg'];
+    if (siteSettings[key + '__fontSize']) el.style.fontSize = siteSettings[key + '__fontSize'];
+    if (siteSettings[key + '__fontWeight']) el.style.fontWeight = siteSettings[key + '__fontWeight'];
+    if (siteSettings[key + '__padding']) el.style.padding = siteSettings[key + '__padding'];
+  });
+}
+
+async function saveSetting(key, value) {
+  siteSettings[key] = value;
+  await sb.from('site_settings').upsert({ key, value }, { onConflict: 'key' });
+}
+
+function toggleEditMode() {
+  if (!fProfile || fProfile.role !== 'admin') return;
+  editModeActive = !editModeActive;
+  document.body.classList.toggle('edit-mode-active', editModeActive);
+  const toolbar = document.getElementById('edit-toolbar');
+  if (editModeActive) {
+    if (!toolbar) injectEditorUI();
+    else toolbar.style.display = 'flex';
+    document.querySelectorAll('[data-edit]').forEach(el => {
+      el.classList.add('editable-el');
+      el.addEventListener('click', onEditClick, true);
+    });
+    showEditorToast('✏️ Edit Mode ON — click any highlighted element to edit');
+  } else {
+    if (toolbar) toolbar.style.display = 'none';
+    document.querySelectorAll('[data-edit]').forEach(el => {
+      el.classList.remove('editable-el', 'editable-selected');
+      el.removeEventListener('click', onEditClick, true);
+    });
+    closeEditPanel();
+    showEditorToast('✓ Edit Mode OFF');
+  }
+  // update button label
+  const btn = document.querySelector('.nav-dd-editmode');
+  if (btn) btn.innerHTML = `<span>${editModeActive ? '🔴' : '✏️'}</span> ${editModeActive ? 'Exit Edit Mode' : 'Edit Mode'}`;
+}
+
+function onEditClick(e) {
+  if (!editModeActive) return;
+  e.preventDefault(); e.stopPropagation();
+  if (editSelected) editSelected.classList.remove('editable-selected');
+  editSelected = e.currentTarget;
+  editSelected.classList.add('editable-selected');
+  openEditPanel(editSelected);
+}
+
+function openEditPanel(el) {
+  let panel = document.getElementById('edit-panel');
+  if (!panel) return;
+  panel.style.display = 'flex';
+
+  const key = el.dataset.edit;
+  const type = el.dataset.editType || 'text';
+  const label = el.dataset.editLabel || key;
+  const currentValue = siteSettings[key] || el.textContent.trim();
+
+  panel.innerHTML = `
+    <div class="ep-header">
+      <div class="ep-title">Editing: <span>${label}</span></div>
+      <button class="ep-close" onclick="closeEditPanel()">✕</button>
+    </div>
+    <div class="ep-body">
+      ${type === 'text' || type === 'html' ? `
+        <div class="ep-field">
+          <label class="ep-label">Content</label>
+          <textarea class="ep-textarea" id="ep-content" rows="4">${currentValue}</textarea>
+        </div>` : ''}
+      ${type === 'src' ? `
+        <div class="ep-field">
+          <label class="ep-label">Image URL</label>
+          <input class="ep-input" id="ep-content" value="${currentValue}" placeholder="https://..." />
+          <div class="ep-hint">Paste a direct image URL</div>
+        </div>` : ''}
+      <div class="ep-field">
+        <label class="ep-label">Text Color</label>
+        <div class="ep-color-row">
+          <input type="color" class="ep-colorpicker" id="ep-color" value="${rgbToHex(el.style.color) || '#f0fdf4'}" oninput="livePreviewColor(this.value)" />
+          <input class="ep-input sm" id="ep-color-text" value="${el.style.color || ''}" placeholder="#4ade80" oninput="document.getElementById('ep-color').value=this.value;livePreviewColor(this.value)" />
+        </div>
+      </div>
+      <div class="ep-field">
+        <label class="ep-label">Font Size</label>
+        <div class="ep-color-row">
+          <input type="range" class="ep-range" id="ep-fontsize" min="10" max="120" value="${parseInt(getComputedStyle(el).fontSize)||16}" oninput="livePreviewFontSize(this.value)" />
+          <span class="ep-range-val" id="ep-fontsize-val">${parseInt(getComputedStyle(el).fontSize)||16}px</span>
+        </div>
+      </div>
+      <div class="ep-field">
+        <label class="ep-label">Font Weight</label>
+        <select class="ep-select" id="ep-fontweight" onchange="livePreviewFontWeight(this.value)">
+          ${[400,500,600,700,800].map(w=>`<option value="${w}" ${parseInt(getComputedStyle(el).fontWeight||400)===w?'selected':''}>${w}</option>`).join('')}
+        </select>
+      </div>
+      <div class="ep-field">
+        <label class="ep-label">Background Color</label>
+        <div class="ep-color-row">
+          <input type="color" class="ep-colorpicker" id="ep-bg" value="${rgbToHex(el.style.backgroundColor)||'#050d08'}" oninput="livePreviewBg(this.value)" />
+          <input class="ep-input sm" id="ep-bg-text" value="${el.style.backgroundColor||''}" placeholder="transparent" oninput="document.getElementById('ep-bg').value=this.value;livePreviewBg(this.value)" />
+        </div>
+      </div>
+      <div class="ep-field">
+        <label class="ep-label">Padding</label>
+        <input class="ep-input" id="ep-padding" value="${el.style.padding||''}" placeholder="e.g. 12px 24px" oninput="livePreviewPadding(this.value)" />
+      </div>
+    </div>
+    <div class="ep-footer">
+      <div class="ep-theme-section">
+        <div class="ep-theme-title">🎨 Global Theme Colors</div>
+        <div class="ep-theme-grid">
+          <div class="ep-theme-item">
+            <label>Accent</label>
+            <input type="color" class="ep-colorpicker sm" value="${siteSettings['--g']||'#4ade80'}" oninput="liveThemeColor('--g',this.value)" />
+          </div>
+          <div class="ep-theme-item">
+            <label>Background</label>
+            <input type="color" class="ep-colorpicker sm" value="${siteSettings['--bg']||'#050d08'}" oninput="liveThemeColor('--bg',this.value)" />
+          </div>
+          <div class="ep-theme-item">
+            <label>Text</label>
+            <input type="color" class="ep-colorpicker sm" value="${siteSettings['--w']||'#f0fdf4'}" oninput="liveThemeColor('--w',this.value)" />
+          </div>
+          <div class="ep-theme-item">
+            <label>Muted</label>
+            <input type="color" class="ep-colorpicker sm" value="${siteSettings['--gr']||'#86efac'}" oninput="liveThemeColor('--gr',this.value)" />
+          </div>
+        </div>
+      </div>
+      <div class="ep-btn-row">
+        <button class="ep-btn-save" onclick="saveElementEdits()">💾 Save Changes</button>
+        <button class="ep-btn-cancel" onclick="closeEditPanel()">Cancel</button>
+      </div>
+    </div>
+  `;
+}
+
+function livePreviewColor(v) { if (editSelected) { editSelected.style.color = v; document.getElementById('ep-color-text').value = v; } }
+function livePreviewBg(v) { if (editSelected) { editSelected.style.backgroundColor = v; document.getElementById('ep-bg-text').value = v; } }
+function livePreviewFontSize(v) { if (editSelected) { editSelected.style.fontSize = v + 'px'; document.getElementById('ep-fontsize-val').textContent = v + 'px'; } }
+function livePreviewFontWeight(v) { if (editSelected) editSelected.style.fontWeight = v; }
+function livePreviewPadding(v) { if (editSelected) editSelected.style.padding = v; }
+function liveThemeColor(varName, val) {
+  document.documentElement.style.setProperty(varName, val);
+  siteSettings[varName] = val;
+}
+
+async function saveElementEdits() {
+  if (!editSelected) return;
+  const key = editSelected.dataset.edit;
+  const type = editSelected.dataset.editType || 'text';
+  const contentEl = document.getElementById('ep-content');
+  const color = document.getElementById('ep-color')?.value;
+  const bg = document.getElementById('ep-bg')?.value;
+  const fontSize = document.getElementById('ep-fontsize')?.value;
+  const fontWeight = document.getElementById('ep-fontweight')?.value;
+  const padding = document.getElementById('ep-padding')?.value;
+
+  const saves = [];
+  if (contentEl) {
+    const val = contentEl.value;
+    if (type === 'text') editSelected.textContent = val;
+    else if (type === 'html') editSelected.innerHTML = val;
+    else if (type === 'src') editSelected.src = val;
+    saves.push(saveSetting(key, val));
+  }
+  if (color) { editSelected.style.color = color; saves.push(saveSetting(key + '__color', color)); }
+  if (bg) { editSelected.style.backgroundColor = bg; saves.push(saveSetting(key + '__bg', bg)); }
+  if (fontSize) { editSelected.style.fontSize = fontSize + 'px'; saves.push(saveSetting(key + '__fontSize', fontSize + 'px')); }
+  if (fontWeight) { editSelected.style.fontWeight = fontWeight; saves.push(saveSetting(key + '__fontWeight', fontWeight)); }
+  if (padding) { editSelected.style.padding = padding; saves.push(saveSetting(key + '__padding', padding)); }
+
+  // Save global theme vars
+  ['--g','--bg','--w','--gr'].forEach(v => {
+    if (siteSettings[v]) saves.push(saveSetting(v, siteSettings[v]));
+  });
+
+  await Promise.all(saves);
+  showEditorToast('✓ Changes saved!');
+}
+
+function closeEditPanel() {
+  const panel = document.getElementById('edit-panel');
+  if (panel) panel.style.display = 'none';
+  if (editSelected) { editSelected.classList.remove('editable-selected'); editSelected = null; }
+}
+
+function injectEditorUI() {
+  // Toolbar
+  const toolbar = document.createElement('div');
+  toolbar.id = 'edit-toolbar';
+  toolbar.innerHTML = `
+    <div class="et-logo">✏️ EDIT MODE</div>
+    <div class="et-hint">Click any <span>highlighted</span> element to edit it</div>
+    <button class="et-exit" onclick="toggleEditMode()">✕ Exit</button>
+  `;
+  document.body.appendChild(toolbar);
+
+  // Side panel
+  const panel = document.createElement('div');
+  panel.id = 'edit-panel';
+  panel.style.display = 'none';
+  document.body.appendChild(panel);
+
+  // CSS
+  const style = document.createElement('style');
+  style.textContent = `
+    /* Editable highlights */
+    body.edit-mode-active [data-edit] { outline: 2px dashed rgba(74,222,128,.5) !important; cursor: pointer !important; position: relative; }
+    body.edit-mode-active [data-edit]:hover { outline: 2px solid #4ade80 !important; background: rgba(74,222,128,.05) !important; }
+    body.edit-mode-active .editable-selected { outline: 2px solid #4ade80 !important; box-shadow: 0 0 0 4px rgba(74,222,128,.15) !important; }
+
+    /* Toolbar */
+    #edit-toolbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 99999;
+      display: flex; align-items: center; gap: 16px; padding: 10px 24px;
+      background: #030a05; border-bottom: 2px solid #4ade80;
+      box-shadow: 0 4px 30px rgba(74,222,128,.2);
+      font-family: 'Barlow', sans-serif;
+    }
+    #edit-toolbar ~ * { margin-top: 48px; }
+    .et-logo { font-weight: 800; font-size: 13px; letter-spacing: 2px; color: #4ade80; }
+    .et-hint { font-size: 12px; color: #86efac; opacity: .7; flex: 1; }
+    .et-hint span { color: #4ade80; font-weight: 700; }
+    .et-exit { background: rgba(248,113,113,.1); border: 1px solid rgba(248,113,113,.4); color: #fca5a5; padding: 6px 16px; border-radius: 4px; font-size: 12px; font-weight: 700; cursor: pointer; letter-spacing: 1px; }
+    .et-exit:hover { background: rgba(248,113,113,.2); }
+
+    /* Edit panel */
+    #edit-panel {
+      position: fixed; right: 0; top: 0; bottom: 0; z-index: 99998;
+      width: 340px; background: #050d08; border-left: 1px solid rgba(74,222,128,.2);
+      box-shadow: -8px 0 40px rgba(0,0,0,.6);
+      display: flex; flex-direction: column; font-family: 'Barlow', sans-serif;
+      overflow: hidden;
+    }
+    .ep-header { display: flex; align-items: center; padding: 16px 20px; border-bottom: 1px solid rgba(74,222,128,.1); background: rgba(0,0,0,.3); }
+    .ep-title { flex: 1; font-size: 13px; font-weight: 700; color: #86efac; letter-spacing: 1px; text-transform: uppercase; }
+    .ep-title span { color: #4ade80; }
+    .ep-close { background: none; border: none; color: #86efac; font-size: 18px; cursor: pointer; opacity: .5; }
+    .ep-close:hover { opacity: 1; color: #fca5a5; }
+    .ep-body { flex: 1; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 14px; }
+    .ep-field { display: flex; flex-direction: column; gap: 6px; }
+    .ep-label { font-size: 11px; font-weight: 700; color: #86efac; opacity: .6; letter-spacing: 1px; text-transform: uppercase; }
+    .ep-textarea { background: rgba(0,0,0,.5); border: 1px solid rgba(74,222,128,.15); border-radius: 4px; padding: 10px 12px; color: #f0fdf4; font-family: 'Barlow', sans-serif; font-size: 13px; resize: vertical; outline: none; }
+    .ep-textarea:focus { border-color: #4ade80; }
+    .ep-input { background: rgba(0,0,0,.5); border: 1px solid rgba(74,222,128,.15); border-radius: 4px; padding: 8px 12px; color: #f0fdf4; font-family: 'Barlow', sans-serif; font-size: 13px; outline: none; width: 100%; }
+    .ep-input.sm { width: 120px; }
+    .ep-input:focus { border-color: #4ade80; }
+    .ep-hint { font-size: 11px; color: #86efac; opacity: .4; }
+    .ep-select { background: rgba(0,0,0,.5); border: 1px solid rgba(74,222,128,.15); border-radius: 4px; padding: 8px 12px; color: #f0fdf4; font-family: 'Barlow', sans-serif; font-size: 13px; outline: none; width: 100%; }
+    .ep-color-row { display: flex; align-items: center; gap: 10px; }
+    .ep-colorpicker { width: 40px; height: 36px; border: 1px solid rgba(74,222,128,.2); border-radius: 4px; cursor: pointer; background: none; padding: 2px; }
+    .ep-colorpicker.sm { width: 32px; height: 28px; }
+    .ep-range { flex: 1; accent-color: #4ade80; }
+    .ep-range-val { font-size: 12px; color: #4ade80; font-weight: 700; min-width: 36px; }
+    .ep-footer { border-top: 1px solid rgba(74,222,128,.1); padding: 16px 20px; display: flex; flex-direction: column; gap: 14px; background: rgba(0,0,0,.2); }
+    .ep-theme-section { display: flex; flex-direction: column; gap: 10px; }
+    .ep-theme-title { font-size: 11px; font-weight: 700; color: #86efac; opacity: .6; letter-spacing: 1px; text-transform: uppercase; }
+    .ep-theme-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .ep-theme-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #86efac; }
+    .ep-theme-item label { font-size: 11px; opacity: .7; flex: 1; }
+    .ep-btn-row { display: flex; gap: 10px; }
+    .ep-btn-save { flex: 1; background: #4ade80; color: #050d08; border: none; padding: 10px; border-radius: 4px; font-weight: 800; font-size: 13px; letter-spacing: 1px; cursor: pointer; }
+    .ep-btn-save:hover { opacity: .88; }
+    .ep-btn-cancel { background: rgba(74,222,128,.06); border: 1px solid rgba(74,222,128,.15); color: #86efac; padding: 10px 16px; border-radius: 4px; font-size: 13px; cursor: pointer; }
+    .ep-btn-cancel:hover { border-color: rgba(74,222,128,.3); }
+
+    /* Editor toast */
+    #edit-toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 99999; background: #0a1a0f; border: 1px solid rgba(74,222,128,.3); color: #4ade80; padding: 10px 20px; border-radius: 6px; font-size: 13px; font-weight: 700; font-family: 'Barlow', sans-serif; pointer-events: none; opacity: 0; transition: opacity .3s; }
+    #edit-toast.show { opacity: 1; }
+
+    /* nav edit mode button */
+    .nav-dd-editmode { color: #4ade80 !important; }
+  `;
+  document.head.appendChild(style);
+
+  // Toast
+  const toast = document.createElement('div');
+  toast.id = 'edit-toast';
+  document.body.appendChild(toast);
+}
+
+function showEditorToast(msg) {
+  let t = document.getElementById('edit-toast');
+  if (!t) { t = document.createElement('div'); t.id = 'edit-toast'; document.body.appendChild(t); }
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+function rgbToHex(rgb) {
+  if (!rgb || rgb.startsWith('#')) return rgb || '';
+  const m = rgb.match(/\d+/g);
+  if (!m || m.length < 3) return '';
+  return '#' + m.slice(0,3).map(x => parseInt(x).toString(16).padStart(2,'0')).join('');
+}
+
+// Load site settings on init
+document.addEventListener('DOMContentLoaded', loadSiteSettings);
