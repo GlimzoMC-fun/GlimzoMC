@@ -348,7 +348,8 @@ async function forumLogin() {
   if (!username) return fToast('❌ Enter your username', true);
   if (!pw) return fToast('❌ Enter your password', true);
   const { data: profile } = await sb.from('profiles').select('email').eq('username', username).single();
-  if (!profile?.email) return fToast('❌ Username not found', true);
+  if (!profile) return fToast('❌ Username not found. Check spelling or sign up.', true);
+  if (!profile.email) return fToast('❌ Account setup incomplete. Please sign up again.', true);
   const { error } = await sb.auth.signInWithPassword({ email: profile.email, password: pw });
   if (error) return fToast('❌ Incorrect password', true);
   closeFModal('fmodal-auth'); fToast('✓ Logged in!');
@@ -365,8 +366,16 @@ async function forumSignup() {
   const { data: existing } = await sb.from('profiles').select('id').eq('username', username).single();
   if (existing) return fToast('❌ Username already taken', true);
   const { data, error } = await sb.auth.signUp({ email, password: pw });
-  if (error) return fToast('❌ ' + error.message, true);
-  if (data.user) await sb.from('profiles').insert({ id: data.user.id, username, email, avatar_color: '#4ade80' });
+  if (error) {
+    if (error.message.toLowerCase().includes('already registered') || error.message.toLowerCase().includes('already been registered')) {
+      return fToast('❌ This email is already registered. Try logging in instead.', true);
+    }
+    return fToast('❌ ' + error.message, true);
+  }
+  if (data.user) {
+    const { error: insertError } = await sb.from('profiles').insert({ id: data.user.id, username, email, avatar_color: '#4ade80' });
+    if (insertError) return fToast('❌ Profile setup failed: ' + insertError.message, true);
+  }
   closeFModal('fmodal-auth'); fToast('✓ Account created! You are now logged in.');
 }
 
@@ -612,7 +621,8 @@ async function doLoginPage() {
   if (!username) return showAuthError('login-error', 'Please enter your username.');
   if (!pw) return showAuthError('login-error', 'Please enter your password.');
   const { data: profile } = await sb.from('profiles').select('email').eq('username', username).single();
-  if (!profile?.email) return showAuthError('login-error', 'Username not found.');
+  if (!profile) return showAuthError('login-error', 'Username not found. Check spelling or sign up for an account.');
+  if (!profile.email) return showAuthError('login-error', 'Account setup incomplete. Please sign up again or contact support.');
   const { data, error } = await sb.auth.signInWithPassword({ email: profile.email, password: pw });
   if (error) return showAuthError('login-error', 'Incorrect password. Please try again.');
   if (data.user) await setForumUser(data.user);
@@ -668,8 +678,18 @@ async function doRegisterPage() {
   if (existing) { btn.disabled = false; btn.textContent = 'Sign Up'; return showAuthError('reg-error', 'That username is already taken.'); }
   btn.textContent = 'Creating account...';
   const { data, error } = await sb.auth.signUp({ email, password: pw });
-  if (error) { btn.disabled = false; btn.textContent = 'Sign Up'; return showAuthError('reg-error', error.message); }
-  if (data.user) { await sb.from('profiles').insert({ id: data.user.id, username, email, avatar_color: '#4ade80' }); await setForumUser(data.user); }
+  if (error) {
+    btn.disabled = false; btn.textContent = 'Sign Up';
+    if (error.message.toLowerCase().includes('already registered') || error.message.toLowerCase().includes('already been registered')) {
+      return showAuthError('reg-error', 'This email is already registered. Try logging in instead.');
+    }
+    return showAuthError('reg-error', error.message);
+  }
+  if (data.user) {
+    const { error: insertError } = await sb.from('profiles').insert({ id: data.user.id, username, email, avatar_color: '#4ade80' });
+    if (insertError) { btn.disabled = false; btn.textContent = 'Sign Up'; return showAuthError('reg-error', 'Account created but profile setup failed. Please contact support.'); }
+    await setForumUser(data.user);
+  }
   navigate('home');
 }
 
