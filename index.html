@@ -37,7 +37,19 @@
     <div class="hero-glow-orb orb2"></div>
 
     <div class="hero-left">
-      <div class="hero-badge"><span class="badge-dot"></span>Server Online — Java 1.8–1.21</div>
+      <div class="hero-badge-wrap">
+        <div class="hero-badge" id="server-status-badge">
+          <span class="badge-dot" id="status-dot"></span>
+          <span id="status-text">Server Online — Java 1.8–1.21</span>
+          <span class="status-arrow admin-only" id="status-arrow" style="display:none;">▾</span>
+        </div>
+        <!-- Admin dropdown -->
+        <div class="status-dropdown" id="status-dropdown" style="display:none;">
+          <div class="status-opt" onclick="setServerStatus('online')">🟢 Server Online</div>
+          <div class="status-opt" onclick="setServerStatus('offline')">🔴 Server Offline</div>
+          <div class="status-opt" onclick="setServerStatus('maintenance')">🟡 Server On Maintenance</div>
+        </div>
+      </div>
       <h1 class="hero-title">Glimzo<span>MC</span></h1>
 
       <p class="hero-sub">A competitive Minecraft network built for players who want to get better. Custom gamemodes, real anti-cheat, and ranked systems that actually mean something.</p>
@@ -195,9 +207,9 @@
         <div class="corner bl"></div><div class="corner br"></div>
         <div class="auth-rows">
           <div class="auth-row">
-            <div class="auth-row-label">Email:</div>
+            <div class="auth-row-label">Username:</div>
             <div class="auth-row-input">
-              <input type="email" class="auth-input" id="login-email" placeholder="you@example.com" autocomplete="email" />
+              <input type="text" class="auth-input" id="login-username" placeholder="YourUsername" autocomplete="username" />
             </div>
           </div>
           <div class="auth-row">
@@ -244,12 +256,7 @@
               <div class="auth-hint" id="reg-username-hint">Letters, numbers and underscores only.</div>
             </div>
           </div>
-          <div class="auth-row">
-            <div class="auth-row-label">Email:<span>Required</span></div>
-            <div class="auth-row-input">
-              <input type="email" class="auth-input" id="reg-email" placeholder="you@example.com" autocomplete="email" />
-              <div class="auth-hint">Used for account recovery. Never shown publicly.</div>
-            </div>
+          
           </div>
           <div class="auth-row">
             <div class="auth-row-label">Password:<span>Required</span></div>
