@@ -270,7 +270,13 @@ async function initForumAuth() {
 
 async function setForumUser(user) {
   fUser = user;
-  const { data } = await sb.from('profiles').select('*').eq('id', user.id).single();
+  let { data } = await sb.from('profiles').select('*').eq('id', user.id).single();
+  // Retry once — profile insert may not be immediately visible
+  if (!data) {
+    await new Promise(r => setTimeout(r, 600));
+    const res = await sb.from('profiles').select('*').eq('id', user.id).single();
+    data = res.data;
+  }
   fProfile = data;
   renderForumNav();
   updateStatusBadgeForAdmin();
