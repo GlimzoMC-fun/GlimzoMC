@@ -301,7 +301,7 @@ function renderForumNav() {
     } else {
       navRight.innerHTML = `
         <a class="btn-nav-login" data-nav="login" style="cursor:pointer;">Log In</a>
-        <a class="btn-nav-register" data-nav="register" style="cursor:pointer;">Register</a>`;
+        <a class="btn-nav-register" data-nav="register" style="cursor:pointer;">Sign Up</a>`;
     }
   }
 
@@ -435,7 +435,7 @@ function renderPublicCommentForm() {
     const init = fProfile.username[0].toUpperCase();
     el.innerHTML = `<div class="pub-comment-form"><div class="pub-comment-form-av" style="background:${color}22;color:${color};">${init}</div><div class="pub-comment-form-inner"><textarea class="pub-comment-ta" id="pub-comment-ta" placeholder="Write a comment..."></textarea><button class="pub-comment-submit" onclick="submitPublicComment()">Post Comment</button></div></div>`;
   } else {
-    el.innerHTML = `<div class="pub-comment-login-prompt"><a onclick="openFAuth('login')">Log in</a> or <a onclick="openFAuth('signup')">sign up</a> to comment.</div>`;
+    el.innerHTML = `<div class="pub-comment-login-prompt"><a onclick="navigate('login')" style="cursor:pointer;">Log In</a> or <a onclick="navigate('register')" style="cursor:pointer;">Sign Up</a> to comment.</div>`;
   }
 }
 
