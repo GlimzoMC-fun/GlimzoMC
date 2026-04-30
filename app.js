@@ -512,7 +512,9 @@ function renderAdminPosts() {
     const emoji = ADMIN_EMOJIS[i % ADMIN_EMOJIS.length];
     const replies = p.replies?.[0]?.count || 0;
     const excerpt = p.content.length > 160 ? p.content.slice(0, 160) + '...' : p.content;
-    return `<div class="admin-post-card" onclick="openForumPost(${p.id})"><div class="admin-post-banner">${emoji}</div><div class="admin-post-body"><div class="admin-post-meta"><span class="admin-badge">📢 Admin</span><span class="admin-name">@${p.profiles?.username || 'Staff'}</span><span class="admin-time">${fTimeAgo(p.created_at)}</span></div><div class="admin-post-title">${p.title}</div><div class="admin-post-excerpt">${excerpt}</div><div class="admin-post-footer"><span class="admin-reply-count">💬 ${replies} ${replies===1?'reply':'replies'}</span><span class="admin-read-more">Read More →</span></div></div></div>`;
+    const isCurrentAdmin = fProfile?.role === 'admin';
+    const deleteBtn = isCurrentAdmin ? `<button class="post-delete-btn" onclick="event.stopPropagation();deleteForumPost(${p.id})" title="Delete post">🗑 Delete</button>` : '';
+    return `<div class="admin-post-card" onclick="openForumPost(${p.id})"><div class="admin-post-banner">${emoji}</div><div class="admin-post-body"><div class="admin-post-meta"><span class="admin-badge">📢 Admin</span><span class="admin-name">@${p.profiles?.username || 'Staff'}</span><span class="admin-time">${fTimeAgo(p.created_at)}</span>${deleteBtn}</div><div class="admin-post-title">${p.title}</div><div class="admin-post-excerpt">${excerpt}</div><div class="admin-post-footer"><span class="admin-reply-count">💬 ${replies} ${replies===1?'reply':'replies'}</span><span class="admin-read-more">Read More →</span></div></div></div>`;
   }).join('');
 }
 
@@ -576,6 +578,17 @@ async function submitPublicComment() {
 
 function renderCommunityPosts() {}
 function filterPostsHome() {}
+
+async function deleteForumPost(id) {
+  if (!fUser || fProfile?.role !== 'admin') return;
+  if (!confirm('Delete this post? This cannot be undone.')) return;
+  // Delete replies first
+  await sb.from('replies').delete().eq('post_id', id);
+  const { error } = await sb.from('posts').delete().eq('id', id);
+  if (error) return fToast('❌ Failed to delete post', true);
+  fToast('✓ Post deleted');
+  await loadForumData();
+}
 
 async function deletePublicComment(id) {
   if (!fUser) return;
