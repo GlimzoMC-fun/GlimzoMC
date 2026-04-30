@@ -1312,3 +1312,29 @@ nav.scrolled{ padding-top:10px; padding-bottom:10px; box-shadow:0 4px 32px rgba(
   .forum-cats { gap: 6px; }
   .forum-cat-btn { font-size: 11px; padding: 7px 14px; }
 }
+
+/* ── GAMEMODE SPECIFIC DROPDOWN ── */
+.forum-cat-gm-wrap { position: relative; }
+.forum-cat-gm-btn { display: flex; align-items: center; gap: 8px; }
+.gm-cat-arrow { font-size: 9px; transition: transform .2s; opacity: .6; }
+.forum-cat-gm-btn.open .gm-cat-arrow { transform: rotate(90deg); opacity: 1; }
+.forum-gm-dropdown {
+  position: absolute; left: 100%; top: 0; margin-left: 8px;
+  background: var(--bgc, #0a1a0f); border: 1px solid rgba(74,222,128,.2);
+  border-radius: 8px; padding: 6px; z-index: 200;
+  display: flex; flex-direction: column; gap: 2px;
+  min-width: 170px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.5);
+  opacity: 0; pointer-events: none; transform: translateX(-6px);
+  transition: opacity .18s, transform .18s;
+}
+.forum-gm-dropdown.open { opacity: 1; pointer-events: all; transform: translateX(0); }
+.forum-gm-opt {
+  background: none; border: none; border-radius: 5px;
+  padding: 9px 14px; text-align: left;
+  font-family: 'Barlow', sans-serif; font-size: 13px; font-weight: 600;
+  color: var(--gr); cursor: pointer; transition: all .15s;
+  white-space: nowrap;
+}
+.forum-gm-opt:hover { background: rgba(74,222,128,.08); color: var(--g); }
+.forum-gm-opt.active { background: rgba(74,222,128,.12); color: var(--g); }
