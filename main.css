@@ -1241,3 +1241,74 @@ nav.scrolled{ padding-top:10px; padding-bottom:10px; box-shadow:0 4px 32px rgba(
 .badge-dot.online{ background:#4ade80; box-shadow:0 0 8px rgba(74,222,128,.8); }
 .badge-dot.offline{ background:#f87171; box-shadow:0 0 8px rgba(248,113,113,.8); }
 .badge-dot.maintenance{ background:#fbbf24; box-shadow:0 0 8px rgba(251,191,36,.8); }
+
+/* ── COMING SOON SECTION ── */
+#coming-soon-section {
+  position: relative; padding: 100px 0; overflow: hidden;
+  border-top: 1px solid rgba(74,222,128,.08);
+}
+.cs-bg {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 60% 80% at 50% 50%, rgba(22,163,74,.07) 0%, transparent 70%);
+  pointer-events: none;
+}
+.cs-inner {
+  position: relative; max-width: 860px; margin: 0 auto;
+  padding: 0 48px; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 24px;
+}
+.cs-label {
+  font-size: 11px; font-weight: 800; letter-spacing: 3px;
+  color: var(--g); text-transform: uppercase; opacity: .7;
+}
+.cs-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(48px, 7vw, 80px); letter-spacing: 3px;
+  color: var(--w); line-height: 1; margin: 0;
+}
+.cs-title span { color: var(--g); }
+.cs-sub {
+  font-size: 16px; color: var(--gr); opacity: .7;
+  max-width: 540px; line-height: 1.7; margin: 0;
+}
+.cs-items {
+  display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 8px;
+}
+.cs-item {
+  background: rgba(74,222,128,.06); border: 1px solid rgba(74,222,128,.18);
+  border-radius: 100px; padding: 10px 22px;
+  font-size: 14px; font-weight: 700; color: var(--gr);
+  letter-spacing: .5px; transition: all .2s;
+}
+.cs-item:hover { border-color: var(--g); color: var(--g); background: rgba(74,222,128,.1); }
+.cs-discord {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(88,101,242,.12); border: 1px solid rgba(88,101,242,.3);
+  border-radius: 6px; padding: 11px 24px;
+  font-size: 13px; font-weight: 700; color: #a5b4fc;
+  text-decoration: none; transition: all .2s; margin-top: 8px;
+}
+.cs-discord:hover { background: rgba(88,101,242,.2); border-color: rgba(88,101,242,.5); }
+
+/* ── FORUM CATEGORY TABS ── */
+.forum-cats {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  margin-bottom: 20px; padding-bottom: 16px;
+  border-bottom: 1px solid rgba(74,222,128,.08);
+}
+.forum-cat-btn {
+  background: rgba(74,222,128,.05); border: 1px solid rgba(74,222,128,.15);
+  border-radius: 100px; padding: 8px 18px;
+  font-family: 'Barlow', sans-serif; font-size: 12px; font-weight: 700;
+  color: var(--gr); letter-spacing: .5px; cursor: pointer; transition: all .2s;
+}
+.forum-cat-btn:hover { border-color: rgba(74,222,128,.35); color: var(--g); }
+.forum-cat-btn.active {
+  background: rgba(74,222,128,.12); border-color: var(--g); color: var(--g);
+}
+
+@media (max-width: 600px) {
+  .cs-inner { padding: 0 20px; }
+  .forum-cats { gap: 6px; }
+  .forum-cat-btn { font-size: 11px; padding: 7px 14px; }
+}
