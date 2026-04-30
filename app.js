@@ -195,10 +195,12 @@ function showDetail(m) {
   if (typeof reattachEditListeners === 'function' && editModeActive) reattachEditListeners();
 }
 
+let gmCardsBuilt = false;
 function showGmList() {
   document.getElementById('gm-list-wrap').style.display = 'block';
   document.getElementById('gm-detail-wrap').style.display = 'none';
   window.scrollTo({ top: 0, behavior: 'instant' });
+  if (!gmCardsBuilt) { buildGmCards(); gmCardsBuilt = true; }
 }
 
 document.getElementById('back-btn')?.addEventListener('click', showGmList);
@@ -249,7 +251,6 @@ function buildEvents() { const list = document.getElementById('events-list'); if
 function buildChangelog() { const list = document.getElementById('changelog-list'); if (!list) return; const data = typeof getChangelog !== 'undefined' ? getChangelog() : CHANGELOG; list.innerHTML = data.map((c) => `<div class="changelog-item"><span class="cl-ver">${c.ver}</span><div class="cl-text"><div class="cl-title">${c.title}</div><div class="cl-date">${c.date}</div></div></div>`).join(''); }
 
 buildHomeCards();
-buildGmCards();
 buildAnnouncements();
 buildEvents();
 buildChangelog();
