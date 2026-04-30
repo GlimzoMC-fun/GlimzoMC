@@ -109,6 +109,17 @@ document.querySelectorAll('[data-nav]').forEach((el) => {
   el.addEventListener('click', () => navigate(el.dataset.nav));
 });
 
+function getGMData() {
+  return MODES.map(m => ({
+    ...m,
+    name:         siteSettings['gm-' + m.id + '-name']         || m.name,
+    desc:         siteSettings['gm-' + m.id + '-desc']         || m.desc,
+    tag:          siteSettings['gm-' + m.id + '-tag']          || m.tag,
+    overviewTitle:siteSettings['gm-' + m.id + '-ovTitle']      || m.overviewTitle,
+    overviewText: siteSettings['gm-' + m.id + '-ovText']       || m.overviewText,
+  }));
+}
+
 function buildHomeCards() {
   const grid = document.getElementById('home-modes-grid');
   if (!grid) return;
@@ -1177,16 +1188,7 @@ function rgbToHex(rgb) {
 document.addEventListener('DOMContentLoaded', loadSiteSettings);
 
 // Make gamemode data editable via siteSettings
-function getGMData() {
-  return GAMEMODES.map(m => ({
-    ...m,
-    name:         siteSettings['gm-' + m.id + '-name']         || m.name,
-    desc:         siteSettings['gm-' + m.id + '-desc']         || m.desc,
-    tag:          siteSettings['gm-' + m.id + '-tag']          || m.tag,
-    overviewTitle:siteSettings['gm-' + m.id + '-ovTitle']      || m.overviewTitle,
-    overviewText: siteSettings['gm-' + m.id + '-ovText']       || m.overviewText,
-  }));
-}
+
 
 // Make announcements/changelog editable via siteSettings
 function getAnnouncements() {
@@ -1208,7 +1210,7 @@ async function openQuickEdit(section) {
   panel.style.display = 'flex';
   if (editSelected) { editSelected.classList.remove('editable-selected'); editSelected = null; }
 
-  const gms = typeof getGMData !== 'undefined' ? getGMData() : GAMEMODES;
+  const gms = typeof getGMData !== 'undefined' ? getGMData() : MODES;
 
   const sections = {
     server: `
@@ -1321,7 +1323,7 @@ async function saveQuickEdit(section) {
   }
 
   if (section === 'gamemodes') {
-    const gms = typeof getGMData !== 'undefined' ? getGMData() : GAMEMODES;
+    const gms = typeof getGMData !== 'undefined' ? getGMData() : MODES;
     gms.forEach(m => {
       ['name','tag','desc','ovTitle','ovText'].forEach(field => {
         const val = v(`qe-gm-${m.id}-${field}`);
