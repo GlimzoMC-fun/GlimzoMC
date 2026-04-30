@@ -428,10 +428,49 @@ async function forumSignup() {
 async function forumSignout() { await sb.auth.signOut(); fToast('✓ Signed out'); }
 
 let currentForumCat = 'all';
+let currentGmSub = null;
+
+function toggleGmDropdown(e, btn) {
+  e.stopPropagation();
+  const dd = document.getElementById('forum-gm-dropdown');
+  const isOpen = dd.classList.contains('open');
+  // close any open state first
+  closeGmDropdown();
+  if (!isOpen) {
+    dd.classList.add('open');
+    btn.classList.add('open', 'active');
+    // close on outside click
+    setTimeout(() => document.addEventListener('click', closeGmDropdown, { once: true }), 0);
+  }
+}
+
+function closeGmDropdown() {
+  const dd = document.getElementById('forum-gm-dropdown');
+  const btn = document.querySelector('.forum-cat-gm-btn');
+  if (dd) dd.classList.remove('open');
+  if (btn && !currentGmSub) btn.classList.remove('open', 'active');
+  else if (btn) btn.classList.remove('open');
+}
+
+function switchForumCatGm(gm, btn) {
+  currentGmSub = gm;
+  currentForumCat = 'gamemode-' + gm;
+  // deactivate all main tabs
+  document.querySelectorAll('.forum-cat-btn').forEach(b => b.classList.remove('active'));
+  // activate parent gm button
+  document.querySelector('.forum-cat-gm-btn')?.classList.add('active');
+  // activate sub option
+  document.querySelectorAll('.forum-gm-opt').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  closeGmDropdown();
+  loadForumData();
+}
 
 function switchForumCat(cat, btn) {
   currentForumCat = cat;
+  currentGmSub = null;
   document.querySelectorAll('.forum-cat-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.forum-gm-opt').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
   loadForumData();
 }
