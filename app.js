@@ -112,31 +112,48 @@ document.querySelectorAll('[data-nav]').forEach((el) => {
 function buildHomeCards() {
   const grid = document.getElementById('home-modes-grid');
   if (!grid) return;
-  MODES.forEach((m) => {
+  grid.innerHTML = '';
+  const live = typeof getGMData !== 'undefined' ? getGMData() : MODES;
+  live.forEach((m) => {
     const card = document.createElement('div');
     card.className = 'gm-prev-card';
-    card.innerHTML = `<span class="gm-prev-emoji">${m.emoji}</span><div class="gm-prev-tag">${m.tag}</div><div class="gm-prev-name">${m.name}</div><div class="gm-prev-desc">${m.desc}</div><span class="gm-prev-arrow">→</span>`;
-    card.addEventListener('click', () => { navigate('gamemodes'); setTimeout(() => showDetail(m), 50); });
+    card.innerHTML = `<span class="gm-prev-emoji" data-edit="gm-${m.id}-emoji" data-edit-type="text" data-edit-label="${m.name} Emoji">${siteSettings['gm-'+m.id+'-emoji']||m.emoji}</span><div class="gm-prev-tag" data-edit="gm-${m.id}-tag" data-edit-type="text" data-edit-label="${m.name} Tag">${siteSettings['gm-'+m.id+'-tag']||m.tag}</div><div class="gm-prev-name" data-edit="gm-${m.id}-name" data-edit-type="text" data-edit-label="${m.name} Name">${siteSettings['gm-'+m.id+'-name']||m.name}</div><div class="gm-prev-desc" data-edit="gm-${m.id}-desc" data-edit-type="text" data-edit-label="${m.name} Description">${siteSettings['gm-'+m.id+'-desc']||m.desc}</div><span class="gm-prev-arrow">→</span>`;
+    card.addEventListener('click', (e) => {
+      if (editModeActive && e.target.closest('[data-edit]')) return;
+      navigate('gamemodes'); setTimeout(() => showDetail(m), 50);
+    });
     grid.appendChild(card);
   });
   observeFadeIn(grid.querySelectorAll('.gm-prev-card'));
+  if (editModeActive) reattachEditListeners();
 }
 
 function buildGmCards() {
   const grid = document.getElementById('cards-grid');
-  MODES.forEach((m, i) => {
+  if (!grid) return;
+  grid.innerHTML = '';
+  const live = typeof getGMData !== 'undefined' ? getGMData() : MODES;
+  live.forEach((m, i) => {
     const card = document.createElement('div');
     card.className = 'gmode-card';
     card.style.cssText = `transition:opacity .5s ease ${i * 0.07}s,transform .5s ease ${i * 0.07}s,border-color .25s,box-shadow .25s;`;
-    card.innerHTML = `<div class="card-thumb"><div class="card-thumb-bg" style="background:${m.bg}"></div><div class="card-thumb-overlay"></div><div class="card-thumb-icon">${m.emoji}</div><div class="card-tag-pill">${m.tag}</div></div><div class="card-body"><div class="card-name">${m.name}</div><div class="card-desc">${m.desc}</div><div class="card-footer"><div style="display:flex;gap:8px;">${m.pills.slice(0,2).map((p)=>`<span class="meta-pill">${p}</span>`).join('')}</div><span class="card-cta-lbl">Learn More →</span></div></div>`;
-    card.addEventListener('click', () => showDetail(m));
+    const emoji = siteSettings['gm-'+m.id+'-emoji'] || m.emoji;
+    const tag   = siteSettings['gm-'+m.id+'-tag']   || m.tag;
+    const name  = siteSettings['gm-'+m.id+'-name']  || m.name;
+    const desc  = siteSettings['gm-'+m.id+'-desc']  || m.desc;
+    card.innerHTML = `<div class="card-thumb"><div class="card-thumb-bg" style="background:${m.bg}"></div><div class="card-thumb-overlay"></div><div class="card-thumb-icon" data-edit="gm-${m.id}-emoji" data-edit-type="text" data-edit-label="${name} Emoji">${emoji}</div><div class="card-tag-pill" data-edit="gm-${m.id}-tag" data-edit-type="text" data-edit-label="${name} Tag">${tag}</div></div><div class="card-body"><div class="card-name" data-edit="gm-${m.id}-name" data-edit-type="text" data-edit-label="${name} Name">${name}</div><div class="card-desc" data-edit="gm-${m.id}-desc" data-edit-type="text" data-edit-label="${name} Card Description">${desc}</div><div class="card-footer"><div style="display:flex;gap:8px;">${m.pills.slice(0,2).map((p)=>`<span class="meta-pill">${p}</span>`).join('')}</div><span class="card-cta-lbl">Learn More →</span></div></div>`;
+    card.addEventListener('click', (e) => {
+      if (editModeActive && e.target.closest('[data-edit]')) return;
+      showDetail(m);
+    });
     grid.appendChild(card);
   });
   const coming = document.createElement('div');
   coming.className = 'gmode-card coming-card';
-  coming.innerHTML = `<div class="card-thumb"><div class="card-thumb-bg" style="background:linear-gradient(135deg,#0a1a0f,#050d08)"></div><div class="card-thumb-overlay"></div><div class="card-thumb-icon">🔒</div><div class="card-tag-pill">Coming Soon</div></div><div class="card-body"><div class="card-name">??? Mode</div><div class="card-desc">Something new is in development. Follow our Discord for announcements.</div><div class="card-footer"><span class="meta-pill">TBA</span></div></div>`;
+  coming.innerHTML = `<div class="card-thumb"><div class="card-thumb-bg" style="background:linear-gradient(135deg,#0a1a0f,#050d08)"></div><div class="card-thumb-overlay"></div><div class="card-thumb-icon">🔒</div><div class="card-tag-pill" data-edit="gm-coming-tag" data-edit-type="text" data-edit-label="Coming Soon Tag">${siteSettings['gm-coming-tag']||'Coming Soon'}</div></div><div class="card-body"><div class="card-name" data-edit="gm-coming-name" data-edit-type="text" data-edit-label="Coming Soon Name">${siteSettings['gm-coming-name']||'??? Mode'}</div><div class="card-desc" data-edit="gm-coming-desc" data-edit-type="text" data-edit-label="Coming Soon Description">${siteSettings['gm-coming-desc']||'Something new is in development. Follow our Discord for announcements.'}</div><div class="card-footer"><span class="meta-pill">TBA</span></div></div>`;
   grid.appendChild(coming);
   observeFadeIn(grid.querySelectorAll('.gmode-card:not(.coming-card)'));
+  if (editModeActive) reattachEditListeners();
 }
 
 function showDetail(m) {
@@ -150,10 +167,21 @@ function showDetail(m) {
   document.getElementById('d-tag').textContent = `⬤ ${m.tag}`;
   document.getElementById('d-tag').style.color = m.color;
   document.getElementById('d-name').textContent = m.name;
-  document.getElementById('d-tagline').textContent = m.overviewTitle;
+  const detailTagline = siteSettings['gm-'+m.id+'-ovTitle'] || m.overviewTitle || '';
+  const detailName = siteSettings['gm-'+m.id+'-name'] || m.name;
+  document.getElementById('d-tagline').textContent = detailTagline;
+  document.getElementById('d-tagline').setAttribute('data-edit', 'gm-'+m.id+'-ovTitle');
+  document.getElementById('d-tagline').setAttribute('data-edit-type', 'text');
+  document.getElementById('d-tagline').setAttribute('data-edit-label', m.name+' Tagline');
+  document.getElementById('d-name').setAttribute('data-edit', 'gm-'+m.id+'-name');
+  document.getElementById('d-name').setAttribute('data-edit-type', 'text');
+  document.getElementById('d-name').setAttribute('data-edit-label', m.name+' Display Name');
   document.getElementById('d-pills').innerHTML = m.pills.map((p) => `<span class="detail-pill">${p}</span>`).join('');
-  document.getElementById('d-main').innerHTML = `<div class="ds-section"><div class="ds-label">Overview</div><div class="ds-title">What It Is</div><p class="ds-text">${m.overviewText}</p></div><div class="ds-section"><div class="ds-label">Features</div><div class="ds-title">What Makes It Unique</div><div class="features-list">${m.features.map((f)=>`<div class="feature-row"><div class="feature-ico" style="background:${m.color}18;">${f.icon}</div><div class="feature-text"><h4>${f.title}</h4><p>${f.desc}</p></div></div>`).join('')}</div></div><div class="ds-section"><div class="ds-label">Why GlimzoMC</div><div class="ds-title">Why Play This Here</div><div class="why-list">${m.why.map((w)=>`<div class="why-row"><span class="why-check" style="color:${m.color}">✓</span><span>${w}</span></div>`).join('')}</div></div>`;
+  const ovTitle = siteSettings['gm-'+m.id+'-ovTitle'] || m.overviewTitle || 'What It Is';
+  const ovText  = siteSettings['gm-'+m.id+'-ovText']  || m.overviewText  || '';
+  document.getElementById('d-main').innerHTML = `<div class="ds-section"><div class="ds-label">Overview</div><div class="ds-title" data-edit="gm-${m.id}-ovTitle" data-edit-type="text" data-edit-label="${m.name} Overview Title">${ovTitle}</div><p class="ds-text" data-edit="gm-${m.id}-ovText" data-edit-type="text" data-edit-label="${m.name} Overview Text">${ovText}</p></div><div class="ds-section"><div class="ds-label">Features</div><div class="ds-title">What Makes It Unique</div><div class="features-list">${m.features.map((f,fi)=>`<div class="feature-row"><div class="feature-ico" style="background:${m.color}18;" data-edit="gm-${m.id}-feat${fi}-icon" data-edit-type="text" data-edit-label="${m.name} Feature ${fi+1} Icon">${siteSettings['gm-'+m.id+'-feat'+fi+'-icon']||f.icon}</div><div class="feature-text"><h4 data-edit="gm-${m.id}-feat${fi}-title" data-edit-type="text" data-edit-label="${m.name} Feature ${fi+1} Title">${siteSettings['gm-'+m.id+'-feat'+fi+'-title']||f.title}</h4><p data-edit="gm-${m.id}-feat${fi}-desc" data-edit-type="text" data-edit-label="${m.name} Feature ${fi+1} Desc">${siteSettings['gm-'+m.id+'-feat'+fi+'-desc']||f.desc}</p></div></div>`).join('')}</div></div><div class="ds-section"><div class="ds-label">Why GlimzoMC</div><div class="ds-title">Why Play This Here</div><div class="why-list">${m.why.map((w,wi)=>`<div class="why-row"><span class="why-check" style="color:${m.color}">✓</span><span data-edit="gm-${m.id}-why${wi}" data-edit-type="text" data-edit-label="${m.name} Why ${wi+1}">${siteSettings['gm-'+m.id+'-why'+wi]||w}</span></div>`).join('')}</div></div>`;
   document.getElementById('d-sidebar').innerHTML = `<div class="sidebar-card"><h3>Mode Info</h3>${m.stats.map((s,i)=>`<div class="stat-row" style="${i===m.stats.length-1?'border-bottom:none;padding-bottom:0;':''}"><span class="stat-label">${s.label}</span><span style="font-weight:700;color:${m.color};">${s.val}</span></div>`).join('')}</div><div class="sidebar-card"><h3>Screenshots</h3><div class="ss-placeholder"><span style="font-size:24px;">🖼</span><span>Screenshot coming soon</span></div><div class="ss-placeholder"><span style="font-size:24px;">🖼</span><span>Screenshot coming soon</span></div></div>`;
+  if (typeof reattachEditListeners === 'function' && editModeActive) reattachEditListeners();
 }
 
 function showGmList() {
@@ -996,6 +1024,11 @@ async function saveElementEdits() {
   });
 
   await Promise.all(saves);
+  // Re-render cards if a gamemode key was edited
+  if (key && key.startsWith('gm-')) {
+    if (typeof buildGmCards === 'function') { document.getElementById('cards-grid').innerHTML = ''; buildGmCards(); }
+    if (typeof buildHomeCards === 'function') { document.getElementById('home-modes-grid').innerHTML = ''; buildHomeCards(); }
+  }
   showEditorToast('✓ Changes saved!');
 }
 
@@ -1115,6 +1148,15 @@ function injectEditorUI() {
   const toast = document.createElement('div');
   toast.id = 'edit-toast';
   document.body.appendChild(toast);
+}
+
+function reattachEditListeners() {
+  if (!editModeActive) return;
+  document.querySelectorAll('[data-edit]').forEach(el => {
+    el.classList.add('editable-el');
+    el.removeEventListener('click', onEditClick, true);
+    el.addEventListener('click', onEditClick, true);
+  });
 }
 
 function showEditorToast(msg) {
