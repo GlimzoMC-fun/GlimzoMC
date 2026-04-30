@@ -205,9 +205,9 @@ const CHANGELOG = [
   { ver: 'v0.1', title: 'Server launch — BedWars live', date: 'Apr 2025' },
 ];
 
-function buildAnnouncements() { const list = document.getElementById('announce-list'); if (!list) return; list.innerHTML = ANNOUNCEMENTS.map((a) => `<div class="announce-card"><span class="ann-badge ${a.badge}">${a.badge}</span><div class="ann-content"><div class="ann-title">${a.title}</div><div class="ann-desc">${a.desc}</div><div class="ann-date">${a.date}</div></div></div>`).join(''); }
+function buildAnnouncements() { const list = document.getElementById('announce-list'); if (!list) return; const data = typeof getAnnouncements !== 'undefined' ? getAnnouncements() : ANNOUNCEMENTS; list.innerHTML = data.map((a) => `<div class="announce-card"><span class="ann-badge ${a.badge}">${a.badge}</span><div class="ann-content"><div class="ann-title">${a.title}</div><div class="ann-desc">${a.desc}</div><div class="ann-date">${a.date}</div></div></div>`).join(''); }
 function buildEvents() { const list = document.getElementById('events-list'); if (!list) return; list.innerHTML = EVENTS.map((e) => `<div class="event-card"><span class="event-emoji">${e.emoji}</span><div class="event-info"><div class="event-name">${e.name}</div><div class="event-meta">${e.meta}</div></div><span class="event-status ${e.status}">${e.status === 'live' ? '● Live' : '◌ Soon'}</span></div>`).join(''); }
-function buildChangelog() { const list = document.getElementById('changelog-list'); if (!list) return; list.innerHTML = CHANGELOG.map((c) => `<div class="changelog-item"><span class="cl-ver">${c.ver}</span><div class="cl-text"><div class="cl-title">${c.title}</div><div class="cl-date">${c.date}</div></div></div>`).join(''); }
+function buildChangelog() { const list = document.getElementById('changelog-list'); if (!list) return; const data = typeof getChangelog !== 'undefined' ? getChangelog() : CHANGELOG; list.innerHTML = data.map((c) => `<div class="changelog-item"><span class="cl-ver">${c.ver}</span><div class="cl-text"><div class="cl-title">${c.title}</div><div class="cl-date">${c.date}</div></div></div>`).join(''); }
 
 buildHomeCards();
 buildGmCards();
@@ -1011,7 +1011,14 @@ function injectEditorUI() {
   toolbar.id = 'edit-toolbar';
   toolbar.innerHTML = `
     <div class="et-logo">✏️ EDIT MODE</div>
-    <div class="et-hint">Click any <span>highlighted</span> element to edit it</div>
+    <div class="et-hint">Click any <span>highlighted</span> element · or use Quick Edit sections →</div>
+    <div class="et-sections">
+      <button class="et-sec-btn" onclick="openQuickEdit('server')">⚙️ Server</button>
+      <button class="et-sec-btn" onclick="openQuickEdit('gamemodes')">🎮 Gamemodes</button>
+      <button class="et-sec-btn" onclick="openQuickEdit('announcements')">📢 Announcements</button>
+      <button class="et-sec-btn" onclick="openQuickEdit('theme')">🎨 Theme</button>
+      <button class="et-sec-btn" onclick="openQuickEdit('footer')">🔗 Footer</button>
+    </div>
     <button class="et-exit" onclick="toggleEditMode()">✕ Exit</button>
   `;
   document.body.appendChild(toolbar);
@@ -1091,6 +1098,16 @@ function injectEditorUI() {
 
     /* nav edit mode button */
     .nav-dd-editmode { color: #4ade80 !important; }
+
+    /* Toolbar section buttons */
+    .et-sections { display: flex; gap: 6px; flex: 1; justify-content: center; flex-wrap: wrap; }
+    .et-sec-btn { background: rgba(74,222,128,.08); border: 1px solid rgba(74,222,128,.2); color: #86efac; padding: 5px 12px; border-radius: 4px; font-size: 11px; font-weight: 700; letter-spacing: .5px; cursor: pointer; transition: all .2s; font-family: 'Barlow', sans-serif; }
+    .et-sec-btn:hover { border-color: #4ade80; color: #4ade80; background: rgba(74,222,128,.15); }
+
+    /* Quick edit panel extras */
+    .ep-gm-group { display: flex; flex-direction: column; gap: 10px; }
+    .ep-gm-title { font-size: 13px; font-weight: 800; color: #4ade80; letter-spacing: 1px; padding: 4px 0; }
+    .ep-divider { height: 1px; background: rgba(74,222,128,.1); margin: 8px 0; }
   `;
   document.head.appendChild(style);
 
@@ -1116,3 +1133,196 @@ function rgbToHex(rgb) {
 
 // Load site settings on init
 document.addEventListener('DOMContentLoaded', loadSiteSettings);
+
+// Make gamemode data editable via siteSettings
+function getGMData() {
+  return GAMEMODES.map(m => ({
+    ...m,
+    name:         siteSettings['gm-' + m.id + '-name']         || m.name,
+    desc:         siteSettings['gm-' + m.id + '-desc']         || m.desc,
+    tag:          siteSettings['gm-' + m.id + '-tag']          || m.tag,
+    overviewTitle:siteSettings['gm-' + m.id + '-ovTitle']      || m.overviewTitle,
+    overviewText: siteSettings['gm-' + m.id + '-ovText']       || m.overviewText,
+  }));
+}
+
+// Make announcements/changelog editable via siteSettings
+function getAnnouncements() {
+  const stored = siteSettings['announcements-json'];
+  if (stored) { try { return JSON.parse(stored); } catch(e) {} }
+  return ANNOUNCEMENTS;
+}
+function getChangelog() {
+  const stored = siteSettings['changelog-json'];
+  if (stored) { try { return JSON.parse(stored); } catch(e) {} }
+  return CHANGELOG;
+}
+
+// ── QUICK EDIT SECTIONS ──────────────────────────────────
+async function openQuickEdit(section) {
+  let panel = document.getElementById('edit-panel');
+  if (!panel) injectEditorUI();
+  panel = document.getElementById('edit-panel');
+  panel.style.display = 'flex';
+  if (editSelected) { editSelected.classList.remove('editable-selected'); editSelected = null; }
+
+  const gms = typeof getGMData !== 'undefined' ? getGMData() : GAMEMODES;
+
+  const sections = {
+    server: `
+      <div class="ep-header"><div class="ep-title">⚙️ <span>Server Settings</span></div><button class="ep-close" onclick="closeEditPanel()">✕</button></div>
+      <div class="ep-body">
+        <div class="ep-field"><label class="ep-label">Server IP</label><input class="ep-input" id="qe-ip" value="${siteSettings['ip'] || 'play.glimzomc.fun'}" /></div>
+        <div class="ep-field"><label class="ep-label">Discord Link</label><input class="ep-input" id="qe-discord" value="${siteSettings['discord'] || 'https://dsc.gg/glimzomc'}" /></div>
+        <div class="ep-field"><label class="ep-label">Status Badge Text</label><input class="ep-input" id="qe-status" value="${siteSettings['status-text'] || 'Server Online — Java 1.8–1.21'}" /></div>
+        <div class="ep-field"><label class="ep-label">Browser Tab Title</label><input class="ep-input" id="qe-title" value="${siteSettings['page-title'] || document.title}" /></div>
+      </div>
+      <div class="ep-footer"><div class="ep-btn-row">
+        <button class="ep-btn-save" onclick="saveQuickEdit('server')">💾 Save</button>
+        <button class="ep-btn-cancel" onclick="closeEditPanel()">Cancel</button>
+      </div></div>`,
+
+    gamemodes: `
+      <div class="ep-header"><div class="ep-title">🎮 <span>Gamemodes</span></div><button class="ep-close" onclick="closeEditPanel()">✕</button></div>
+      <div class="ep-body">
+        ${gms.map(m => `
+          <div class="ep-gm-group">
+            <div class="ep-gm-title">${m.emoji} ${m.name}</div>
+            <div class="ep-field"><label class="ep-label">Name</label><input class="ep-input" id="qe-gm-${m.id}-name" value="${siteSettings['gm-'+m.id+'-name'] || m.name}" /></div>
+            <div class="ep-field"><label class="ep-label">Tag</label><input class="ep-input" id="qe-gm-${m.id}-tag" value="${siteSettings['gm-'+m.id+'-tag'] || m.tag}" /></div>
+            <div class="ep-field"><label class="ep-label">Card Description</label><textarea class="ep-textarea" id="qe-gm-${m.id}-desc" rows="2">${siteSettings['gm-'+m.id+'-desc'] || m.desc}</textarea></div>
+            <div class="ep-field"><label class="ep-label">Overview Title</label><input class="ep-input" id="qe-gm-${m.id}-ovTitle" value="${siteSettings['gm-'+m.id+'-ovTitle'] || m.overviewTitle || ''}" /></div>
+            <div class="ep-field"><label class="ep-label">Overview Text</label><textarea class="ep-textarea" id="qe-gm-${m.id}-ovText" rows="3">${siteSettings['gm-'+m.id+'-ovText'] || m.overviewText || ''}</textarea></div>
+          </div>`).join('<div class="ep-divider"></div>')}
+      </div>
+      <div class="ep-footer"><div class="ep-btn-row">
+        <button class="ep-btn-save" onclick="saveQuickEdit('gamemodes')">💾 Save All</button>
+        <button class="ep-btn-cancel" onclick="closeEditPanel()">Cancel</button>
+      </div></div>`,
+
+    announcements: `
+      <div class="ep-header"><div class="ep-title">📢 <span>Announcements & Changelog</span></div><button class="ep-close" onclick="closeEditPanel()">✕</button></div>
+      <div class="ep-body">
+        <div class="ep-field">
+          <label class="ep-label">Announcements (JSON)</label>
+          <div class="ep-hint">Array of {badge, title, desc, date}</div>
+          <textarea class="ep-textarea" id="qe-announcements" rows="10">${siteSettings['announcements-json'] || JSON.stringify(ANNOUNCEMENTS, null, 2)}</textarea>
+        </div>
+        <div class="ep-field">
+          <label class="ep-label">Changelog (JSON)</label>
+          <div class="ep-hint">Array of {ver, title, date}</div>
+          <textarea class="ep-textarea" id="qe-changelog" rows="8">${siteSettings['changelog-json'] || JSON.stringify(CHANGELOG, null, 2)}</textarea>
+        </div>
+      </div>
+      <div class="ep-footer"><div class="ep-btn-row">
+        <button class="ep-btn-save" onclick="saveQuickEdit('announcements')">💾 Save</button>
+        <button class="ep-btn-cancel" onclick="closeEditPanel()">Cancel</button>
+      </div></div>`,
+
+    theme: `
+      <div class="ep-header"><div class="ep-title">🎨 <span>Global Theme</span></div><button class="ep-close" onclick="closeEditPanel()">✕</button></div>
+      <div class="ep-body">
+        <div class="ep-field"><label class="ep-label">Accent Color (buttons, highlights)</label>
+          <div class="ep-color-row"><input type="color" class="ep-colorpicker" id="qe-g" value="${siteSettings['--g'] || '#4ade80'}" oninput="liveThemeColor('--g',this.value)" /><span class="ep-range-val" id="qe-g-val">${siteSettings['--g'] || '#4ade80'}</span></div></div>
+        <div class="ep-field"><label class="ep-label">Page Background</label>
+          <div class="ep-color-row"><input type="color" class="ep-colorpicker" id="qe-bg" value="${siteSettings['--bg'] || '#050d08'}" oninput="liveThemeColor('--bg',this.value)" /><span class="ep-range-val">${siteSettings['--bg'] || '#050d08'}</span></div></div>
+        <div class="ep-field"><label class="ep-label">Text Color</label>
+          <div class="ep-color-row"><input type="color" class="ep-colorpicker" id="qe-w" value="${siteSettings['--w'] || '#f0fdf4'}" oninput="liveThemeColor('--w',this.value)" /><span class="ep-range-val">${siteSettings['--w'] || '#f0fdf4'}</span></div></div>
+        <div class="ep-field"><label class="ep-label">Muted Text Color</label>
+          <div class="ep-color-row"><input type="color" class="ep-colorpicker" id="qe-gr" value="${siteSettings['--gr'] || '#86efac'}" oninput="liveThemeColor('--gr',this.value)" /><span class="ep-range-val">${siteSettings['--gr'] || '#86efac'}</span></div></div>
+        <div class="ep-field"><label class="ep-label">Card / Section Background</label>
+          <div class="ep-color-row"><input type="color" class="ep-colorpicker" id="qe-bgc" value="${siteSettings['--bgc'] || '#0a1a0f'}" oninput="liveThemeColor('--bgc',this.value)" /><span class="ep-range-val">${siteSettings['--bgc'] || '#0a1a0f'}</span></div></div>
+        <div class="ep-field"><label class="ep-label">Border / Element Background</label>
+          <div class="ep-color-row"><input type="color" class="ep-colorpicker" id="qe-bge" value="${siteSettings['--bge'] || '#0f2318'}" oninput="liveThemeColor('--bge',this.value)" /><span class="ep-range-val">${siteSettings['--bge'] || '#0f2318'}</span></div></div>
+      </div>
+      <div class="ep-footer"><div class="ep-btn-row">
+        <button class="ep-btn-save" onclick="saveQuickEdit('theme')">💾 Save Theme</button>
+        <button class="ep-btn-cancel" onclick="closeEditPanel()">Cancel</button>
+      </div></div>`,
+
+    footer: `
+      <div class="ep-header"><div class="ep-title">🔗 <span>Footer</span></div><button class="ep-close" onclick="closeEditPanel()">✕</button></div>
+      <div class="ep-body">
+        <div class="ep-field"><label class="ep-label">Logo Text</label><input class="ep-input" id="qe-footer-logo" value="${siteSettings['footer-logo'] || 'GlimzoMC'}" /></div>
+        <div class="ep-field"><label class="ep-label">Tagline</label><textarea class="ep-textarea" id="qe-footer-tagline" rows="2">${siteSettings['footer-tagline'] || 'A competitive Minecraft network.\nBuilt for players who want to win.'}</textarea></div>
+        <div class="ep-field"><label class="ep-label">Copyright Text</label><input class="ep-input" id="qe-footer-copy" value="${siteSettings['footer-copy'] || '© 2026 GlimzoMC. All rights reserved.'}" /></div>
+        <div class="ep-field"><label class="ep-label">Footer Server IP</label><input class="ep-input" id="qe-footer-ip" value="${siteSettings['footer-ip'] || 'play.glimzomc.fun'}" /></div>
+        <div class="ep-field"><label class="ep-label">Col 1 Title</label><input class="ep-input" id="qe-fc1" value="${siteSettings['footer-col1-title'] || 'Play'}" /></div>
+        <div class="ep-field"><label class="ep-label">Col 2 Title</label><input class="ep-input" id="qe-fc2" value="${siteSettings['footer-col2-title'] || 'Community'}" /></div>
+        <div class="ep-field"><label class="ep-label">Col 3 Title</label><input class="ep-input" id="qe-fc3" value="${siteSettings['footer-col3-title'] || 'Server'}" /></div>
+      </div>
+      <div class="ep-footer"><div class="ep-btn-row">
+        <button class="ep-btn-save" onclick="saveQuickEdit('footer')">💾 Save</button>
+        <button class="ep-btn-cancel" onclick="closeEditPanel()">Cancel</button>
+      </div></div>`,
+  };
+
+  panel.innerHTML = sections[section] || '';
+}
+
+async function saveQuickEdit(section) {
+  const saves = [];
+  const apply = (key, val) => { siteSettings[key] = val; saves.push(saveSetting(key, val)); };
+  const v = id => document.getElementById(id)?.value;
+
+  if (section === 'server') {
+    apply('ip', v('qe-ip'));
+    apply('discord', v('qe-discord'));
+    apply('status-text', v('qe-status'));
+    apply('page-title', v('qe-title'));
+    // Live-apply
+    const stEl = document.getElementById('status-text');
+    if (stEl) stEl.textContent = v('qe-status');
+    document.querySelectorAll('.btn-ip, [data-edit="footer-ip"]').forEach(el => el.textContent = v('qe-ip'));
+    document.querySelectorAll('[href*="dsc.gg"]').forEach(el => el.href = v('qe-discord'));
+    if (v('qe-title')) document.title = v('qe-title');
+  }
+
+  if (section === 'gamemodes') {
+    const gms = typeof getGMData !== 'undefined' ? getGMData() : GAMEMODES;
+    gms.forEach(m => {
+      ['name','tag','desc','ovTitle','ovText'].forEach(field => {
+        const val = v(`qe-gm-${m.id}-${field}`);
+        if (val !== undefined) apply(`gm-${m.id}-${field}`, val);
+      });
+    });
+    // Re-render cards
+    if (typeof renderGamemodeCards === 'function') renderGamemodeCards();
+  }
+
+  if (section === 'announcements') {
+    const aVal = v('qe-announcements');
+    const cVal = v('qe-changelog');
+    try { JSON.parse(aVal); apply('announcements-json', aVal); } catch(e) { return showEditorToast('❌ Announcements JSON is invalid'); }
+    try { JSON.parse(cVal); apply('changelog-json', cVal); } catch(e) { return showEditorToast('❌ Changelog JSON is invalid'); }
+    if (typeof buildAnnouncements === 'function') buildAnnouncements();
+    if (typeof buildChangelog === 'function') buildChangelog();
+  }
+
+  if (section === 'theme') {
+    ['--g','--bg','--w','--gr','--bgc','--bge'].forEach(varName => {
+      const id = 'qe-' + varName.replace('--','');
+      const val = v(id);
+      if (val) { apply(varName, val); document.documentElement.style.setProperty(varName, val); }
+    });
+  }
+
+  if (section === 'footer') {
+    const fields = [
+      ['footer-logo','qe-footer-logo'],['footer-tagline','qe-footer-tagline'],
+      ['footer-copy','qe-footer-copy'],['footer-ip','qe-footer-ip'],
+      ['footer-col1-title','qe-fc1'],['footer-col2-title','qe-fc2'],['footer-col3-title','qe-fc3'],
+    ];
+    fields.forEach(([key, elId]) => {
+      const val = v(elId);
+      if (val) {
+        apply(key, val);
+        const el = document.querySelector(`[data-edit="${key}"]`);
+        if (el) el.textContent = val;
+      }
+    });
+  }
+
+  await Promise.all(saves);
+  showEditorToast('✓ Saved!');
+}
