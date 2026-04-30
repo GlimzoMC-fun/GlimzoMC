@@ -989,20 +989,22 @@ function openEditPanel(el) {
       </div>
       <div class="ep-btn-row">
         <button class="ep-btn-save" onclick="saveElementEdits()">💾 Save Changes</button>
+        <button class="ep-btn-clear" onclick="clearElementStyles()">🗑 Reset Styles</button>
         <button class="ep-btn-cancel" onclick="closeEditPanel()">Cancel</button>
       </div>
     </div>
   `;
 }
 
-function livePreviewColor(v) { if (editSelected) { editSelected.style.color = v; document.getElementById('ep-color-text').value = v; } }
-function livePreviewBg(v) { if (editSelected) { editSelected.style.backgroundColor = v; document.getElementById('ep-bg-text').value = v; } }
-function livePreviewFontSize(v) { if (editSelected) { editSelected.style.fontSize = v + 'px'; document.getElementById('ep-fontsize-val').textContent = v + 'px'; } }
-function livePreviewFontWeight(v) { if (editSelected) editSelected.style.fontWeight = v; }
-function livePreviewPadding(v) { if (editSelected) editSelected.style.padding = v; }
+function livePreviewColor(v) { if (editSelected) { editSelected.style.color = v; document.getElementById('ep-color-text').value = v; const el = document.getElementById('ep-color'); if(el) el.dataset.dirty = '1'; } }
+function livePreviewBg(v) { if (editSelected) { editSelected.style.backgroundColor = v; document.getElementById('ep-bg-text').value = v; const el = document.getElementById('ep-bg'); if(el) el.dataset.dirty = '1'; } }
+function livePreviewFontSize(v) { if (editSelected) { editSelected.style.fontSize = v + 'px'; document.getElementById('ep-fontsize-val').textContent = v + 'px'; const el = document.getElementById('ep-fontsize'); if(el) el.dataset.dirty = '1'; } }
+function livePreviewFontWeight(v) { if (editSelected) { editSelected.style.fontWeight = v; const el = document.getElementById('ep-fontweight'); if(el) el.dataset.dirty = '1'; } }
+function livePreviewPadding(v) { if (editSelected) { editSelected.style.padding = v; const el = document.getElementById('ep-padding'); if(el) el.dataset.dirty = '1'; } }
 function liveThemeColor(varName, val) {
   document.documentElement.style.setProperty(varName, val);
   siteSettings[varName] = val;
+  siteSettings[varName + '__dirty'] = true;
 }
 
 async function saveElementEdits() {
@@ -1010,13 +1012,9 @@ async function saveElementEdits() {
   const key = editSelected.dataset.edit;
   const type = editSelected.dataset.editType || 'text';
   const contentEl = document.getElementById('ep-content');
-  const color = document.getElementById('ep-color')?.value;
-  const bg = document.getElementById('ep-bg')?.value;
-  const fontSize = document.getElementById('ep-fontsize')?.value;
-  const fontWeight = document.getElementById('ep-fontweight')?.value;
-  const padding = document.getElementById('ep-padding')?.value;
-
   const saves = [];
+
+  // Save content only
   if (contentEl) {
     const val = contentEl.value;
     if (type === 'text') editSelected.textContent = val;
@@ -1024,15 +1022,23 @@ async function saveElementEdits() {
     else if (type === 'src') editSelected.src = val;
     saves.push(saveSetting(key, val));
   }
-  if (color) { editSelected.style.color = color; saves.push(saveSetting(key + '__color', color)); }
-  if (bg) { editSelected.style.backgroundColor = bg; saves.push(saveSetting(key + '__bg', bg)); }
-  if (fontSize) { editSelected.style.fontSize = fontSize + 'px'; saves.push(saveSetting(key + '__fontSize', fontSize + 'px')); }
-  if (fontWeight) { editSelected.style.fontWeight = fontWeight; saves.push(saveSetting(key + '__fontWeight', fontWeight)); }
-  if (padding) { editSelected.style.padding = padding; saves.push(saveSetting(key + '__padding', padding)); }
 
-  // Save global theme vars
+  // Only save style fields if user explicitly changed them (tracked via data-dirty)
+  const colorEl = document.getElementById('ep-color');
+  const bgEl = document.getElementById('ep-bg');
+  const fontSizeEl = document.getElementById('ep-fontsize');
+  const fontWeightEl = document.getElementById('ep-fontweight');
+  const paddingEl = document.getElementById('ep-padding');
+
+  if (colorEl?.dataset.dirty) { editSelected.style.color = colorEl.value; saves.push(saveSetting(key + '__color', colorEl.value)); }
+  if (bgEl?.dataset.dirty) { editSelected.style.backgroundColor = bgEl.value; saves.push(saveSetting(key + '__bg', bgEl.value)); }
+  if (fontSizeEl?.dataset.dirty) { editSelected.style.fontSize = fontSizeEl.value + 'px'; saves.push(saveSetting(key + '__fontSize', fontSizeEl.value + 'px')); }
+  if (fontWeightEl?.dataset.dirty) { editSelected.style.fontWeight = fontWeightEl.value; saves.push(saveSetting(key + '__fontWeight', fontWeightEl.value)); }
+  if (paddingEl?.dataset.dirty) { editSelected.style.padding = paddingEl.value; saves.push(saveSetting(key + '__padding', paddingEl.value)); }
+
+  // Save global theme vars only if they were changed via liveThemeColor
   ['--g','--bg','--w','--gr'].forEach(v => {
-    if (siteSettings[v]) saves.push(saveSetting(v, siteSettings[v]));
+    if (siteSettings[v + '__dirty']) saves.push(saveSetting(v, siteSettings[v]));
   });
 
   await Promise.all(saves);
@@ -1135,6 +1141,8 @@ function injectEditorUI() {
     .ep-btn-save { flex: 1; background: #4ade80; color: #050d08; border: none; padding: 10px; border-radius: 4px; font-weight: 800; font-size: 13px; letter-spacing: 1px; cursor: pointer; }
     .ep-btn-save:hover { opacity: .88; }
     .ep-btn-cancel { background: rgba(74,222,128,.06); border: 1px solid rgba(74,222,128,.15); color: #86efac; padding: 10px 16px; border-radius: 4px; font-size: 13px; cursor: pointer; }
+    .ep-btn-clear { background: rgba(248,113,113,.07); border: 1px solid rgba(248,113,113,.2); color: #fca5a5; padding: 10px 16px; border-radius: 4px; font-size: 13px; cursor: pointer; }
+    .ep-btn-clear:hover { background: rgba(248,113,113,.15); }
     .ep-btn-cancel:hover { border-color: rgba(74,222,128,.3); }
 
     /* Editor toast */
@@ -1160,6 +1168,24 @@ function injectEditorUI() {
   const toast = document.createElement('div');
   toast.id = 'edit-toast';
   document.body.appendChild(toast);
+}
+
+async function clearElementStyles() {
+  if (!editSelected) return;
+  const key = editSelected.dataset.edit;
+  // Remove inline styles
+  editSelected.style.color = '';
+  editSelected.style.backgroundColor = '';
+  editSelected.style.fontSize = '';
+  editSelected.style.fontWeight = '';
+  editSelected.style.padding = '';
+  // Delete from Supabase
+  const styleKeys = ['__color','__bg','__fontSize','__fontWeight','__padding'];
+  await Promise.all(styleKeys.map(suffix =>
+    sb.from('site_settings').delete().eq('key', key + suffix)
+  ));
+  styleKeys.forEach(suffix => delete siteSettings[key + suffix]);
+  showEditorToast('✓ Styles reset!');
 }
 
 function reattachEditListeners() {
