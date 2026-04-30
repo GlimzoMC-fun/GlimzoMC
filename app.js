@@ -883,37 +883,45 @@ function toggleEditMode() {
   if (editModeActive) {
     if (!toolbar) injectEditorUI();
     else toolbar.style.display = 'flex';
-    gmCardsBuilt = false;
-    const grid = document.getElementById('cards-grid');
-    if (grid) { grid.innerHTML = ''; buildGmCards(); gmCardsBuilt = true; }
-    document.querySelectorAll('[data-edit]').forEach(el => el.classList.add('editable-el'));
-    document.addEventListener('click', onEditClick, true);
+    attachEditableClicks();
     showEditorToast('✏️ Edit Mode ON — click any highlighted element to edit');
   } else {
     if (toolbar) toolbar.style.display = 'none';
-    document.querySelectorAll('[data-edit]').forEach(el => {
-      el.classList.remove('editable-el', 'editable-selected');
-    });
-    document.removeEventListener('click', onEditClick, true);
-    gmCardsBuilt = false;
+    detachEditableClicks();
     closeEditPanel();
     showEditorToast('✓ Edit Mode OFF');
   }
-  // update button label
   const btn = document.querySelector('.nav-dd-editmode');
   if (btn) btn.innerHTML = `<span>${editModeActive ? '🔴' : '✏️'}</span> ${editModeActive ? 'Exit Edit Mode' : 'Edit Mode'}`;
 }
 
-function onEditClick(e) {
-  if (!editModeActive) return;
-  const target = e.target.closest('[data-edit]');
-  if (!target) return; // not clicking an editable element, let it pass
-  e.preventDefault(); e.stopPropagation();
-  if (editSelected) editSelected.classList.remove('editable-selected');
-  editSelected = target;
-  editSelected.classList.add('editable-selected');
-  openEditPanel(editSelected);
+function attachEditableClicks() {
+  document.querySelectorAll('[data-edit]').forEach(el => {
+    el.classList.add('editable-el');
+    el._editHandler = function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (editSelected) editSelected.classList.remove('editable-selected');
+      editSelected = el;
+      el.classList.add('editable-selected');
+      openEditPanel(el);
+    };
+    el.addEventListener('click', el._editHandler);
+  });
 }
+
+function detachEditableClicks() {
+  document.querySelectorAll('[data-edit]').forEach(el => {
+    el.classList.remove('editable-el', 'editable-selected');
+    if (el._editHandler) {
+      el.removeEventListener('click', el._editHandler);
+      delete el._editHandler;
+    }
+  });
+  if (editSelected) editSelected = null;
+}
+
+function onEditClick(e) {}
 
 function openEditPanel(el) {
   let panel = document.getElementById('edit-panel');
@@ -1199,9 +1207,7 @@ async function clearElementStyles() {
 
 function reattachEditListeners() {
   if (!editModeActive) return;
-  document.querySelectorAll('[data-edit]').forEach(el => {
-    el.classList.add('editable-el');
-  });
+  attachEditableClicks();
 }
 
 function showEditorToast(msg) {
