@@ -427,6 +427,15 @@ async function forumSignup() {
 
 async function forumSignout() { await sb.auth.signOut(); fToast('✓ Signed out'); }
 
+let currentForumCat = 'all';
+
+function switchForumCat(cat, btn) {
+  currentForumCat = cat;
+  document.querySelectorAll('.forum-cat-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  loadForumData();
+}
+
 async function loadForumData() {
   await loadForumCategories();
   const { data } = await sb.from('posts').select(`*, profiles(username, avatar_color, role), categories(name, icon), replies(count)`).order('created_at', { ascending: false });
@@ -438,9 +447,12 @@ async function loadForumData() {
 
 async function loadForumCategories() {
   const { data } = await sb.from('categories').select('*').order('id');
-  fCats = data || [];
-  const pills = document.getElementById('cat-pills-home');
-  if (pills) { pills.innerHTML = `<span class="cat-pill active" onclick="filterForumCat(null,this)">All</span>`; fCats.forEach(c => { pills.innerHTML += `<span class="cat-pill" onclick="filterForumCat(${c.id},this)">${c.icon} ${c.name}</span>`; }); }
+  const defaultCats = [
+    { id: 1, icon: '📢', name: 'Updates' },
+    { id: 2, icon: '💬', name: 'General' },
+    { id: 3, icon: '🎮', name: 'Gamemode Specific' },
+  ];
+  fCats = (data && data.length) ? data : defaultCats;
   const sel = document.getElementById('f-post-cat');
   if (sel) { sel.innerHTML = ''; fCats.forEach(c => sel.innerHTML += `<option value="${c.id}">${c.icon} ${c.name}</option>`); }
 }
