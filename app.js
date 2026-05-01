@@ -489,7 +489,7 @@ async function loadForumCategories() {
   const defaultCats = [
     { id: 1, icon: '📢', name: 'Updates' },
     { id: 2, icon: '💬', name: 'General' },
-    { id: 3, icon: '🎮', name: 'Gamemode Specific' },
+    { id: 3, icon: '🎮', name: 'Gamemodes' },
   ];
   fCats = (data && data.length) ? data : defaultCats;
   const sel = document.getElementById('f-post-cat');
