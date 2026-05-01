@@ -1405,3 +1405,94 @@ nav.scrolled{ padding-top:10px; padding-bottom:10px; box-shadow:0 4px 32px rgba(
   font-size: clamp(48px, 6vw, 80px); letter-spacing: 4px;
   color: var(--w); text-align: center; margin: 0;
 }
+
+/* ── HERO CS CARD — ENHANCED ── */
+.hero-cs-card {
+  position: relative !important;
+  background: rgba(5,13,8,.85) !important;
+  border: 1px solid rgba(74,222,128,.25) !important;
+  border-radius: 4px !important;
+  min-height: 260px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: visible !important;
+  box-shadow: 0 0 60px rgba(74,222,128,.06), inset 0 0 40px rgba(74,222,128,.03) !important;
+}
+.hero-cs-card::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 80% 60% at 50% 50%, rgba(22,163,74,.07) 0%, transparent 70%);
+  pointer-events: none;
+}
+.hero-cs-corner {
+  position: absolute; width: 14px; height: 14px; z-index: 2;
+}
+.hero-cs-corner.tl { top: -1px; left: -1px; border-top: 2px solid #4ade80; border-left: 2px solid #4ade80; }
+.hero-cs-corner.tr { top: -1px; right: -1px; border-top: 2px solid #4ade80; border-right: 2px solid #4ade80; }
+.hero-cs-corner.bl { bottom: -1px; left: -1px; border-bottom: 2px solid #4ade80; border-left: 2px solid #4ade80; }
+.hero-cs-corner.br { bottom: -1px; right: -1px; border-bottom: 2px solid #4ade80; border-right: 2px solid #4ade80; }
+.hero-cs-inner {
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column; align-items: center;
+  text-align: center; padding: 40px 48px; gap: 0;
+}
+.hero-cs-label {
+  font-size: 10px; font-weight: 800; letter-spacing: 4px;
+  color: #4ade80; text-transform: uppercase; opacity: .6;
+  margin-bottom: 14px;
+}
+.hero-cs-title {
+  font-family: 'Bebas Neue', sans-serif !important;
+  font-size: clamp(56px, 6vw, 88px) !important;
+  letter-spacing: 6px !important;
+  color: #f0fdf4 !important;
+  line-height: .95 !important;
+  margin: 0 0 20px !important;
+  text-align: center !important;
+}
+.hero-cs-title span { color: #4ade80; }
+.hero-cs-line {
+  width: 48px; height: 2px;
+  background: linear-gradient(90deg, transparent, #4ade80, transparent);
+  margin-bottom: 18px;
+}
+.hero-cs-sub {
+  font-size: 13px; color: #86efac; opacity: .55;
+  line-height: 1.7; letter-spacing: .3px;
+}
+
+/* ── HERO CS CARD — FINAL ── */
+.hero-cs-card {
+  position: relative !important;
+  background: rgba(5,13,8,.6) !important;
+  border: 1px solid rgba(74,222,128,.18) !important;
+  border-radius: 4px !important;
+  width: 100% !important;
+  min-height: 300px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+}
+.hero-cs-glow {
+  position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse 70% 50% at 50% 60%, rgba(74,222,128,.09) 0%, transparent 70%);
+}
+.hero-cs-corner { position: absolute; width: 16px; height: 16px; z-index: 2; }
+.hero-cs-corner.tl { top:-1px; left:-1px; border-top:2px solid #4ade80; border-left:2px solid #4ade80; }
+.hero-cs-corner.tr { top:-1px; right:-1px; border-top:2px solid #4ade80; border-right:2px solid #4ade80; }
+.hero-cs-corner.bl { bottom:-1px; left:-1px; border-bottom:2px solid #4ade80; border-left:2px solid #4ade80; }
+.hero-cs-corner.br { bottom:-1px; right:-1px; border-bottom:2px solid #4ade80; border-right:2px solid #4ade80; }
+.hero-cs-title {
+  position: relative; z-index: 1;
+  font-family: 'Bebas Neue', sans-serif !important;
+  font-size: clamp(64px, 7vw, 100px) !important;
+  letter-spacing: 8px !important;
+  line-height: .92 !important;
+  text-align: center !important;
+  margin: 0 !important;
+  color: #f0fdf4 !important;
+  text-shadow: 0 0 80px rgba(74,222,128,.18) !important;
+}
+.hero-cs-title span { color: #4ade80; }
