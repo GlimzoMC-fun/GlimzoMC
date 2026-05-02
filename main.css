@@ -1262,3 +1262,30 @@ nav.scrolled{ padding-top:10px; padding-bottom:10px; box-shadow:0 4px 32px rgba(
 /* ── POST DELETE BUTTON ── */
 .post-delete-btn { margin-left:auto; background:rgba(248,113,113,.08); border:1px solid rgba(248,113,113,.25); border-radius:4px; color:#fca5a5; font-size:11px; font-weight:700; padding:3px 10px; cursor:pointer; transition:all .2s; letter-spacing:.5px; }
 .post-delete-btn:hover { background:rgba(248,113,113,.18); border-color:#f87171; color:#f87171; }
+
+/* ── HERO COMING SOON TEXT ── */
+#hero { display: flex; align-items: center; justify-content: space-between; gap: 0; }
+.hero-left { flex: 0 0 auto; max-width: 420px; }
+.hero-cs-text {
+  flex: 1;
+  display: flex; flex-direction: column;
+  align-items: flex-end; justify-content: center;
+  padding-right: 48px; line-height: .88;
+  pointer-events: none; user-select: none;
+}
+.hero-cs-coming, .hero-cs-soon {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(80px, 11vw, 160px);
+  letter-spacing: 6px;
+  display: block;
+}
+.hero-cs-coming { color: #f0fdf4; }
+.hero-cs-soon {
+  color: #4ade80;
+  text-shadow: 0 0 80px rgba(74,222,128,.35);
+}
+
+@media (max-width: 900px) {
+  #hero { flex-direction: column; }
+  .hero-cs-text { align-items: flex-start; padding-right: 0; padding-top: 24px; }
+}
